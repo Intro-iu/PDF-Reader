@@ -194,6 +194,8 @@ fileInput.addEventListener('change', (e) => {
 let zoomSlider, zoomCurrentLabel, zoomControl, zoomResetBtn;
 let currentPdfData = null;
 let currentScale = 1.0;
+let isRendering = false; // 防止并发渲染
+let pendingRenderScale = null; // 待渲染的缩放比例
 
 // 初始化缩放控制器
 function initializeZoomControl() {
@@ -201,13 +203,6 @@ function initializeZoomControl() {
     zoomCurrentLabel = document.querySelector('.zoom-current');
     zoomControl = document.querySelector('.pdf-zoom-control');
     zoomResetBtn = document.getElementById('zoom-reset-btn');
-    
-    console.log('缩放控制器元素检查:', {
-        zoomSlider: !!zoomSlider,
-        zoomCurrentLabel: !!zoomCurrentLabel,
-        zoomControl: !!zoomControl,
-        zoomResetBtn: !!zoomResetBtn
-    });
     
     if (!zoomSlider || !zoomCurrentLabel || !zoomControl || !zoomResetBtn) {
         console.error('缩放控制器元素未找到');
@@ -220,26 +215,22 @@ function initializeZoomControl() {
     // 缩放滑条事件
     zoomSlider.addEventListener('input', (e) => {
         const zoomValue = parseInt(e.target.value);
-        currentScale = zoomValue / 100; // 转换为比例值
+        const newScale = zoomValue / 100; // 转换为比例值
+        
+        // 立即更新UI显示
         zoomCurrentLabel.textContent = `${zoomValue}%`;
         
-        // 重新渲染PDF
-        if (currentPdfData) {
-            renderPdfWithScale(currentPdfData, currentScale);
-        }
+        // 队列渲染请求
+        queueRender(newScale);
     });
 
     // 重置缩放按钮
     zoomResetBtn.addEventListener('click', () => {
-        console.log('重置按钮被点击');
         zoomSlider.value = 100;
-        currentScale = 1.0;
         zoomCurrentLabel.textContent = '100%';
         
-        // 重新渲染PDF
-        if (currentPdfData) {
-            renderPdfWithScale(currentPdfData, currentScale);
-        }
+        // 立即渲染重置
+        queueRender(1.0);
     });
 
     // 鼠标滚轮缩放（在PDF区域内）
@@ -249,16 +240,71 @@ function initializeZoomControl() {
             
             const delta = e.deltaY > 0 ? -5 : 5; // 滚轮向下减少，向上增加
             const newValue = Math.max(25, Math.min(200, parseInt(zoomSlider.value) + delta));
+            const newScale = newValue / 100;
             
+            // 立即更新UI
             zoomSlider.value = newValue;
-            currentScale = newValue / 100;
             zoomCurrentLabel.textContent = `${newValue}%`;
             
-            if (currentPdfData) {
-                renderPdfWithScale(currentPdfData, currentScale);
-            }
+            // 队列渲染请求
+            queueRender(newScale);
         }
     });
+}
+
+// 智能渲染队列管理
+function queueRender(scale) {
+    currentScale = scale;
+    pendingRenderScale = scale;
+    
+    // 立即应用CSS缩放作为预览效果
+    applyInstantZoom(scale);
+    
+    if (!isRendering && currentPdfData) {
+        processRenderQueue();
+    }
+}
+
+// 立即应用CSS缩放预览
+function applyInstantZoom(scale) {
+    const pageContainers = pdfViewer.querySelectorAll('.pdf-page-container');
+    if (pageContainers.length === 0) return;
+    
+    // 计算当前显示比例与目标比例的差异
+    const currentDisplayScale = currentScale || 1.0;
+    const cssScale = scale / currentDisplayScale;
+    
+    pageContainers.forEach(container => {
+        container.style.transform = `scale(${cssScale})`;
+        container.style.transformOrigin = 'center top';
+        container.style.transition = 'transform 0.1s ease-out';
+    });
+}
+
+// 清除CSS缩放效果
+function clearInstantZoom() {
+    const pageContainers = pdfViewer.querySelectorAll('.pdf-page-container');
+    pageContainers.forEach(container => {
+        container.style.transform = '';
+        container.style.transformOrigin = '';
+        container.style.transition = '';
+    });
+}
+
+async function processRenderQueue() {
+    if (isRendering || !pendingRenderScale || !currentPdfData) {
+        return;
+    }
+    
+    const scaleToRender = pendingRenderScale;
+    pendingRenderScale = null;
+    
+    await renderPdfWithScale(currentPdfData, scaleToRender);
+    
+    // 如果在渲染过程中有新的缩放请求，继续处理
+    if (pendingRenderScale && pendingRenderScale !== scaleToRender) {
+        setTimeout(() => processRenderQueue(), 50);
+    }
 }
 
 // 显示/隐藏缩放控制器
@@ -600,39 +646,90 @@ document.addEventListener('DOMContentLoaded', () => {
 async function renderPdf(data) {
     currentPdfData = data; // 保存PDF数据用于缩放
     currentScale = 1.0; // 重置缩放比例
-    zoomSlider.value = 100;
-    zoomCurrentLabel.textContent = '100%';
+    
+    // 更新UI
+    if (zoomSlider && zoomCurrentLabel) {
+        zoomSlider.value = 100;
+        zoomCurrentLabel.textContent = '100%';
+    }
     toggleZoomControl(true); // 显示缩放控制器
     
     await renderPdfWithScale(data, currentScale);
 }
 
 async function renderPdfWithScale(data, scale) {
-    pdfViewer.innerHTML = '<p>正在加载 PDF...</p>';
+    // 防止并发渲染
+    if (isRendering) {
+        console.log('正在渲染中，跳过此次请求');
+        return;
+    }
+    
+    isRendering = true;
+    
+    // 清除CSS缩放预览效果
+    clearInstantZoom();
+    
+    // 完全清空PDF容器
+    pdfViewer.innerHTML = '';
+    
+    // 显示加载提示
+    const loadingDiv = document.createElement('p');
+    loadingDiv.textContent = '正在加载 PDF...';
+    pdfViewer.appendChild(loadingDiv);
+    
     try {
         const pdf = await pdfjsLib.getDocument(data).promise;
+        
+        // 再次清空容器，移除加载提示
         pdfViewer.innerHTML = '';
+        
+        // 渲染所有页面
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const viewport = page.getViewport({ scale });
+            
+            // 创建页面容器
             const pageContainer = document.createElement('div');
             pageContainer.className = 'pdf-page-container';
             pageContainer.style.width = `${viewport.width}px`;
             pageContainer.style.height = `${viewport.height}px`;
+            
+            // 创建canvas
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
+            
+            // 创建文本层
             const textLayerDiv = document.createElement('div');
             textLayerDiv.className = 'textLayer';
+            
+            // 组装页面
             pageContainer.append(canvas, textLayerDiv);
             pdfViewer.appendChild(pageContainer);
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            
+            // 渲染页面内容
+            await page.render({ 
+                canvasContext: canvas.getContext('2d'), 
+                viewport 
+            }).promise;
+            
+            // 渲染文本层
             const textContent = await page.getTextContent();
-            pdfjsLib.renderTextLayer({ textContent, container: textLayerDiv, viewport, textDivs: [] });
+            pdfjsLib.renderTextLayer({ 
+                textContent, 
+                container: textLayerDiv, 
+                viewport, 
+                textDivs: [] 
+            });
         }
+        
+        console.log(`PDF渲染完成: ${pdf.numPages}页，缩放比例: ${scale}`);
+        
     } catch (error) {
         console.error('PDF渲染出错:', error);
         pdfViewer.innerHTML = `<p>加载 PDF 出错: ${error.message}</p>`;
         toggleZoomControl(false); // 隐藏缩放控制器
+    } finally {
+        isRendering = false; // 无论成功失败都重置渲染状态
     }
 }

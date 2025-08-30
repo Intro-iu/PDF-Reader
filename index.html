@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 阅读器</title>
+
+    <!-- 关键修复：引入 PDF.js 官方的 viewer CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <div id="toolbar">
+            <label for="file-input" class="custom-file-upload">选择 PDF 文件</label>
+            <input type="file" id="file-input" accept=".pdf">
+        </div>
+        <div id="main-content">
+            <div id="pdf-viewer">
+                <p>请在上方选择一个 PDF 文件进行预览</p>
+            </div>
+            <aside id="sidebar">
+                <h3>划选内容</h3>
+                <pre id="selected-text">在这里显示划选的文本</pre>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 引入 PDF.js 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    
+    <!-- 引入我们自己的脚本 -->
+    <script src="app.js"></script>
+</body>
+</html>

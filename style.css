@@ -1,0 +1,121 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    height: 100%;
+    overflow: hidden;
+}
+
+::selection {
+    background: rgba(0, 123, 255, 0.4);
+}
+
+#app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+#toolbar {
+    padding: 10px 20px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+}
+
+.custom-file-upload {
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.custom-file-upload:hover {
+    background-color: #0056b3;
+}
+
+#file-input {
+    display: none;
+}
+
+#main-content {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+#pdf-viewer {
+    flex: 3;
+    overflow-y: auto;
+    padding: 20px;
+    background-color: #e9ecef;
+    text-align: center;
+}
+
+.pdf-page-container {
+    position: relative;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    /* 将边框从 canvas 移到这里 */
+    border: 1px solid #ccc;
+}
+
+.pdf-page-container canvas {
+    display: block;
+    /* 移除这里的边框 */
+}
+
+.textLayer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    color: transparent;
+    user-select: none;
+    line-height: 1.0;
+}
+
+.textLayer > span,
+.textLayer > br {
+    position: absolute;
+    white-space: pre;
+    user-select: text;
+    cursor: text;
+}
+
+#sidebar {
+    flex: 1;
+    padding: 20px;
+    background-color: #ffffff;
+    border-left: 1px solid #ddd;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar h3 {
+    margin-top: 0;
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+#selected-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+    flex-grow: 1;
+    font-size: 14px;
+    line-height: 1.6;
+}

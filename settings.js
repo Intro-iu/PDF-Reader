@@ -8,7 +8,8 @@ class SettingsManager {
             translateTargetLang: 'zh',
             autoSaveSettings: true,
             enableSelectionTranslation: true,
-            pdfZoomLevel: 1
+            textSelectionColor: '#007bff',
+            selectionOpacity: 30
         };
         
         this.settings = this.loadSettings();
@@ -34,9 +35,13 @@ class SettingsManager {
         }
     }
     
-    saveSettings() {
-        // 直接保存到配置文件，不使用localStorage
-        return this.saveToConfigFile();
+    saveSettings(isManual = false) {
+        // 自动保存只同步localStorage，手动保存才下载文件
+        this.syncToLocalStorage();
+        if (isManual) {
+            return this.saveToConfigFile();
+        }
+        return true;
     }
     
     // 保存到配置文件的方法
@@ -87,7 +92,24 @@ class SettingsManager {
         // 填充基本设置
         document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
         document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
-        document.getElementById('pdf-zoom-level').value = this.settings.pdfZoomLevel;
+        
+        // 初始化颜色选择器
+        const colorPicker = document.getElementById('text-selection-color');
+        const opacitySlider = document.getElementById('selection-opacity');
+        const opacityValue = document.querySelector('.slider-value');
+        
+        if (colorPicker) {
+            colorPicker.value = this.settings.textSelectionColor || '#007bff';
+            this.updateSelectionColor(colorPicker.value);
+            this.updateColorPresetSelection(colorPicker.value);
+        }
+        
+        if (opacitySlider && opacityValue) {
+            const opacity = this.settings.selectionOpacity || 30;
+            opacitySlider.value = opacity;
+            opacityValue.textContent = `${opacity}%`;
+            this.updateSelectionOpacity(opacity);
+        }
         
         // 渲染AI模型列表
         this.renderAiModelsList();
@@ -275,7 +297,7 @@ class SettingsManager {
         
         // 保存设置（现在直接保存到文件）
         saveButton.addEventListener('click', () => {
-            this.collectAndSaveSettings();
+            this.collectAndSaveSettings(true); // 手动保存才下载文件
         });
         
         // 重置设置
@@ -294,6 +316,48 @@ class SettingsManager {
         importFileInput.addEventListener('change', (e) => {
             this.importConfig(e.target.files[0]);
         });
+
+        // 文本选择颜色设置
+        const colorPicker = document.getElementById('text-selection-color');
+        const colorPresets = document.querySelectorAll('.color-preset');
+        const opacitySlider = document.getElementById('selection-opacity');
+        const opacityValue = document.querySelector('.slider-value');
+
+        // 颜色选择器变化
+        colorPicker.addEventListener('input', (e) => {
+            const color = e.target.value;
+            this.updateSelectionColor(color);
+            this.updateColorPresetSelection(color);
+            if (this.settings.autoSaveSettings) {
+                this.settings.textSelectionColor = color;
+                this.saveSettings();
+            }
+        });
+
+        // 颜色预设点击
+        colorPresets.forEach(preset => {
+            preset.addEventListener('click', () => {
+                const color = preset.dataset.color;
+                colorPicker.value = color;
+                this.updateSelectionColor(color);
+                this.updateColorPresetSelection(color);
+                if (this.settings.autoSaveSettings) {
+                    this.settings.textSelectionColor = color;
+                    this.saveSettings();
+                }
+            });
+        });
+
+        // 透明度滑条变化
+        opacitySlider.addEventListener('input', (e) => {
+            const opacity = parseInt(e.target.value);
+            opacityValue.textContent = `${opacity}%`;
+            this.updateSelectionOpacity(opacity);
+            if (this.settings.autoSaveSettings) {
+                this.settings.selectionOpacity = opacity;
+                this.saveSettings();
+            }
+        });
         
         // 自动保存设置变化
         const inputs = document.querySelectorAll('input:not([onchange]), select:not([onchange])');
@@ -306,14 +370,61 @@ class SettingsManager {
         });
     }
     
-    collectAndSaveSettings() {
+    collectAndSaveSettings(isManual = false) {
         this.settings.autoSaveSettings = document.getElementById('auto-save-settings').checked;
         this.settings.enableSelectionTranslation = document.getElementById('enable-selection-translation').checked;
-        this.settings.pdfZoomLevel = parseFloat(document.getElementById('pdf-zoom-level').value);
         this.settings.activeChatModel = document.getElementById('active-chat-model').value;
         this.settings.activeTranslateModel = document.getElementById('active-translate-model').value;
         
-        this.saveSettings();
+        // 获取颜色选择器的值
+        const colorPicker = document.getElementById('text-selection-color');
+        const opacitySlider = document.getElementById('selection-opacity');
+        
+        if (colorPicker) {
+            this.settings.textSelectionColor = colorPicker.value;
+        }
+        
+        if (opacitySlider) {
+            this.settings.selectionOpacity = parseInt(opacitySlider.value);
+        }
+        
+        this.saveSettings(isManual);
+    }
+
+    // 更新文本选择颜色
+    updateSelectionColor(color) {
+        document.documentElement.style.setProperty('--text-selection-color', color);
+        // 同步到localStorage供主页面使用
+        this.syncToLocalStorage();
+    }
+
+    // 更新文本选择透明度
+    updateSelectionOpacity(opacity) {
+        const opacityValue = opacity / 100;
+        document.documentElement.style.setProperty('--text-selection-opacity', opacityValue);
+        // 同步到localStorage供主页面使用
+        this.syncToLocalStorage();
+    }
+
+    // 同步设置到localStorage（供主页面实时使用）
+    syncToLocalStorage() {
+        try {
+            localStorage.setItem('pdfReaderSettings', JSON.stringify(this.settings));
+        } catch (error) {
+            console.warn('同步设置到localStorage失败:', error);
+        }
+    }
+
+    // 更新颜色预设的选中状态
+    updateColorPresetSelection(selectedColor) {
+        const colorPresets = document.querySelectorAll('.color-preset');
+        colorPresets.forEach(preset => {
+            if (preset.dataset.color === selectedColor) {
+                preset.classList.add('active');
+            } else {
+                preset.classList.remove('active');
+            }
+        });
     }
     
     resetSettings() {

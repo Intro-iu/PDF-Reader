@@ -196,6 +196,11 @@ let currentPdfData = null;
 let currentScale = 1.0;
 let isRendering = false; // 防止并发渲染
 let pendingRenderScale = null; // 待渲染的缩放比例
+let currentPdf = null; // 保存PDF文档对象
+let renderingQueue = []; // 渲染队列
+let progressiveRenderQueue = []; // 渐进式渲染队列
+let isProgressiveRendering = false; // 渐进式渲染状态
+let renderTimeout = null; // 渲染延迟计时器
 
 // 初始化缩放控制器
 function initializeZoomControl() {
@@ -250,19 +255,95 @@ function initializeZoomControl() {
             queueRender(newScale);
         }
     });
+
+    // 在pdfViewer滚动时触发懒加载渲染
+    pdfViewer.addEventListener('scroll', throttle(() => {
+        if (currentPdf && !isRendering) {
+            renderVisiblePages();
+        }
+    }, 200)); // 增加节流时间，减少触发频率
+}
+
+// 工具函数：节流
+function throttle(func, delay) {
+    let timeoutId;
+    let lastExecTime = 0;
+    return function (...args) {
+        const currentTime = Date.now();
+        
+        if (currentTime - lastExecTime > delay) {
+            func.apply(this, args);
+            lastExecTime = currentTime;
+        } else {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func.apply(this, args);
+                lastExecTime = Date.now();
+            }, delay - (currentTime - lastExecTime));
+        }
+    };
 }
 
 // 智能渲染队列管理
 function queueRender(scale) {
     currentScale = scale;
-    pendingRenderScale = scale;
     
-    // 立即应用CSS缩放作为预览效果
+    // 清空之前的渲染请求
+    if (renderTimeout) {
+        clearTimeout(renderTimeout);
+    }
+    
+    // 立即应用CSS预览缩放
     applyInstantZoom(scale);
     
-    if (!isRendering && currentPdfData) {
-        processRenderQueue();
+    // 延迟实际渲染，避免频繁缩放时的性能问题
+    renderTimeout = setTimeout(() => {
+        handleScaleChange(scale);
+    }, 300);
+}
+
+// 处理缩放变化
+async function handleScaleChange(scale) {
+    if (!currentPdf || !currentPdfData) return;
+    
+    console.log(`缩放变化: ${scale}, 更新页面尺寸`);
+    
+    // 清除CSS预览效果
+    clearInstantZoom();
+    
+    // 更新所有页面容器的尺寸，但不重新渲染内容
+    const pageContainers = Array.from(pdfViewer.querySelectorAll('.pdf-page-container'));
+    
+    for (const container of pageContainers) {
+        const pageNum = parseInt(container.dataset.pageNum);
+        const page = await currentPdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+        
+        // 更新容器尺寸
+        container.style.width = `${viewport.width}px`;
+        container.style.height = `${viewport.height}px`;
+        
+        // 如果页面已经渲染过，需要清除内容重新渲染
+        if (container.dataset.rendered === 'true') {
+            container.dataset.rendered = 'false';
+            
+            // 清除现有内容，恢复占位符
+            container.innerHTML = `
+                <div class="page-placeholder">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📄</div>
+                        <div class="placeholder-text">第 ${pageNum} 页</div>
+                        <div class="placeholder-subtext">缩放后重新加载</div>
+                    </div>
+                </div>
+            `;
+        }
     }
+    
+    // 重新渲染可见页面
+    setTimeout(() => {
+        renderVisiblePages();
+    }, 100);
 }
 
 // 立即应用CSS缩放预览
@@ -281,7 +362,7 @@ function applyInstantZoom(scale) {
     });
 }
 
-// 清除CSS缩放效果
+// 清除CSS缩放预览效果
 function clearInstantZoom() {
     const pageContainers = pdfViewer.querySelectorAll('.pdf-page-container');
     pageContainers.forEach(container => {
@@ -289,6 +370,112 @@ function clearInstantZoom() {
         container.style.transformOrigin = '';
         container.style.transition = '';
     });
+}
+
+// 检查元素是否在视窗内或接近视窗
+function isElementInViewport(element, threshold = 200) {
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    return (
+        rect.top < viewportHeight + threshold &&
+        rect.bottom > -threshold
+    );
+}
+
+// 获取页面渲染优先级（距离视窗中心越近优先级越高）
+function getPagePriority(element) {
+    const rect = element.getBoundingClientRect();
+    const viewportCenter = window.innerHeight / 2;
+    const elementCenter = rect.top + rect.height / 2;
+    const distance = Math.abs(viewportCenter - elementCenter);
+    return -distance; // 负数表示距离，距离越小优先级越高
+}
+
+// 渐进式渲染页面
+async function renderPageProgressively(pageContainer, pageNum, scale) {
+    try {
+        const page = await currentPdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+        
+        // 找到对应的canvas和文本层
+        const canvas = pageContainer.querySelector('canvas');
+        const textLayerDiv = pageContainer.querySelector('.textLayer');
+        
+        if (!canvas || !textLayerDiv) return;
+        
+        // 更新canvas尺寸
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        // 更新容器尺寸
+        pageContainer.style.width = `${viewport.width}px`;
+        pageContainer.style.height = `${viewport.height}px`;
+        
+        // 渲染页面内容
+        await page.render({
+            canvasContext: canvas.getContext('2d'),
+            viewport
+        }).promise;
+        
+        // 清空并重新渲染文本层
+        textLayerDiv.innerHTML = '';
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({
+            textContent,
+            container: textLayerDiv,
+            viewport,
+            textDivs: []
+        });
+        
+        // 标记为已渲染
+        pageContainer.dataset.rendered = 'true';
+        pageContainer.dataset.scale = scale.toString();
+        
+    } catch (error) {
+        console.error(`渲染第${pageNum}页时出错:`, error);
+    }
+}
+
+// 处理渐进式渲染队列
+async function processProgressiveRenderQueue() {
+    if (isProgressiveRendering || renderingQueue.length === 0) {
+        return;
+    }
+    
+    isProgressiveRendering = true;
+    
+    while (renderingQueue.length > 0) {
+        const { pageContainer, pageNum, scale } = renderingQueue.shift();
+        
+        // 如果页面已经以当前比例渲染过，跳过
+        if (pageContainer.dataset.rendered === 'true' && 
+            parseFloat(pageContainer.dataset.scale || '0') === scale) {
+            continue;
+        }
+        
+        await renderPageProgressively(pageContainer, pageNum, scale);
+        
+        // 每渲染一页后短暂休息，避免阻塞UI
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    isProgressiveRendering = false;
+}
+
+// 添加页面到渲染队列
+function queuePageRender(pageContainer, pageNum, scale, priority = 0) {
+    // 移除已存在的同一页面请求
+    renderingQueue = renderingQueue.filter(item => item.pageNum !== pageNum);
+    
+    // 添加新请求
+    renderingQueue.push({ pageContainer, pageNum, scale, priority });
+    
+    // 按优先级排序（优先级高的先渲染）
+    renderingQueue.sort((a, b) => b.priority - a.priority);
+    
+    // 开始处理队列
+    processProgressiveRenderQueue();
 }
 
 async function processRenderQueue() {
@@ -594,12 +781,35 @@ function initializeApp() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
     
+    // Load selection color settings
+    loadSelectionColorSettings();
+    
     // Initialize translate target language
     initializeTranslateTargetLang();
 
     // Ensure welcome view is shown on page load
     if (chatMessages.children.length === 0) {
         chatMessages.appendChild(createWelcomeView());
+    }
+}
+
+// 加载文本选择颜色设置
+function loadSelectionColorSettings() {
+    try {
+        // 从localStorage读取设置（临时方案）
+        const savedSettings = localStorage.getItem('pdfReaderSettings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            if (settings.textSelectionColor) {
+                document.documentElement.style.setProperty('--text-selection-color', settings.textSelectionColor);
+            }
+            if (settings.selectionOpacity !== undefined) {
+                const opacityValue = settings.selectionOpacity / 100;
+                document.documentElement.style.setProperty('--text-selection-opacity', opacityValue);
+            }
+        }
+    } catch (error) {
+        console.warn('加载选择颜色设置失败:', error);
     }
 }
 
@@ -669,23 +879,25 @@ async function renderPdfWithScale(data, scale) {
     // 清除CSS缩放预览效果
     clearInstantZoom();
     
-    // 完全清空PDF容器
-    pdfViewer.innerHTML = '';
-    
     // 显示加载提示
-    const loadingDiv = document.createElement('p');
-    loadingDiv.textContent = '正在加载 PDF...';
-    pdfViewer.appendChild(loadingDiv);
+    pdfViewer.innerHTML = '<p>正在初始化 PDF...</p>';
     
     try {
-        const pdf = await pdfjsLib.getDocument(data).promise;
+        // 如果PDF文档对象不存在或数据改变，重新加载
+        if (!currentPdf || currentPdfData !== data) {
+            currentPdf = await pdfjsLib.getDocument(data).promise;
+            currentPdfData = data;
+        }
         
-        // 再次清空容器，移除加载提示
+        // 清空容器
         pdfViewer.innerHTML = '';
         
-        // 渲染所有页面
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
+        const numPages = currentPdf.numPages;
+        console.log(`初始化PDF容器: ${numPages}页，缩放比例: ${scale}`);
+        
+        // 创建所有页面的占位符容器（不渲染内容）
+        for (let i = 1; i <= numPages; i++) {
+            const page = await currentPdf.getPage(i);
             const viewport = page.getViewport({ scale });
             
             // 创建页面容器
@@ -693,27 +905,108 @@ async function renderPdfWithScale(data, scale) {
             pageContainer.className = 'pdf-page-container';
             pageContainer.style.width = `${viewport.width}px`;
             pageContainer.style.height = `${viewport.height}px`;
+            pageContainer.dataset.pageNum = i.toString();
+            pageContainer.dataset.rendered = 'false';
             
-            // 创建canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
+            // 创建占位内容
+            const placeholder = document.createElement('div');
+            placeholder.className = 'page-placeholder';
+            placeholder.innerHTML = `
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">📄</div>
+                    <div class="placeholder-text">第 ${i} 页</div>
+                    <div class="placeholder-subtext">滚动到此处加载</div>
+                </div>
+            `;
             
-            // 创建文本层
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'textLayer';
-            
-            // 组装页面
-            pageContainer.append(canvas, textLayerDiv);
+            pageContainer.appendChild(placeholder);
             pdfViewer.appendChild(pageContainer);
-            
-            // 渲染页面内容
-            await page.render({ 
-                canvasContext: canvas.getContext('2d'), 
-                viewport 
-            }).promise;
-            
-            // 渲染文本层
+        }
+        
+        console.log(`PDF容器初始化完成，开始懒加载渲染`);
+        
+        // 立即渲染前几页（可见区域）
+        renderVisiblePages();
+        
+        // 显示缩放控制器
+        toggleZoomControl(true);
+        
+    } catch (error) {
+        console.error('PDF渲染出错:', error);
+        pdfViewer.innerHTML = `<p>加载 PDF 出错: ${error.message}</p>`;
+        toggleZoomControl(false);
+    } finally {
+        isRendering = false;
+    }
+}
+
+// 渲染当前可见区域的页面
+async function renderVisiblePages() {
+    const pageContainers = Array.from(pdfViewer.querySelectorAll('.pdf-page-container'));
+    const visibleContainers = [];
+    
+    // 找出可见或接近可见的页面
+    pageContainers.forEach(container => {
+        if (isElementInViewport(container, 800) && container.dataset.rendered === 'false') {
+            visibleContainers.push(container);
+        }
+    });
+    
+    console.log(`发现 ${visibleContainers.length} 个页面需要渲染`);
+    
+    // 批量渲染可见页面（每次最多3页，避免卡顿）
+    const batchSize = 3;
+    for (let i = 0; i < visibleContainers.length; i += batchSize) {
+        const batch = visibleContainers.slice(i, i + batchSize);
+        await Promise.all(batch.map(container => renderSinglePage(container)));
+        
+        // 给UI一些时间更新
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+}
+
+// 渲染单个页面
+async function renderSinglePage(pageContainer) {
+    const pageNum = parseInt(pageContainer.dataset.pageNum);
+    
+    if (pageContainer.dataset.rendered === 'true') {
+        return; // 已经渲染过了
+    }
+    
+    try {
+        const page = await currentPdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: currentScale });
+        
+        // 更新容器尺寸（可能因为缩放改变了）
+        pageContainer.style.width = `${viewport.width}px`;
+        pageContainer.style.height = `${viewport.height}px`;
+        
+        // 移除占位符
+        const placeholder = pageContainer.querySelector('.page-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+        
+        // 创建canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        // 创建文本层
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        
+        // 添加到容器
+        pageContainer.append(canvas, textLayerDiv);
+        
+        // 渲染页面内容
+        await page.render({ 
+            canvasContext: canvas.getContext('2d'), 
+            viewport 
+        }).promise;
+        
+        // 渲染文本层
+        try {
             const textContent = await page.getTextContent();
             pdfjsLib.renderTextLayer({ 
                 textContent, 
@@ -721,15 +1014,73 @@ async function renderPdfWithScale(data, scale) {
                 viewport, 
                 textDivs: [] 
             });
+        } catch (textError) {
+            console.warn(`页面 ${pageNum} 文本层渲染失败:`, textError);
         }
         
-        console.log(`PDF渲染完成: ${pdf.numPages}页，缩放比例: ${scale}`);
+        // 标记为已渲染
+        pageContainer.dataset.rendered = 'true';
+        pageContainer.classList.add('rendered');
+        
+        console.log(`页面 ${pageNum} 渲染完成`);
         
     } catch (error) {
-        console.error('PDF渲染出错:', error);
-        pdfViewer.innerHTML = `<p>加载 PDF 出错: ${error.message}</p>`;
-        toggleZoomControl(false); // 隐藏缩放控制器
-    } finally {
-        isRendering = false; // 无论成功失败都重置渲染状态
+        console.error(`页面 ${pageNum} 渲染失败:`, error);
+        
+        // 显示错误信息
+        pageContainer.innerHTML = `
+            <div class="page-error">
+                <div>⚠️ 页面 ${pageNum} 加载失败</div>
+                <div style="font-size: 12px; color: #666;">点击重试</div>
+            </div>
+        `;
+        
+        // 添加重试功能
+        pageContainer.addEventListener('click', () => {
+            pageContainer.dataset.rendered = 'false';
+            renderSinglePage(pageContainer);
+        }, { once: true });
     }
+}
+
+// 创建所有页面的容器结构
+async function createAllPageContainers(scale) {
+    pdfViewer.innerHTML = '<p>正在初始化页面...</p>';
+    
+    const numPages = currentPdf.numPages;
+    const containers = [];
+    
+    // 快速创建所有页面容器
+    for (let i = 1; i <= numPages; i++) {
+        const page = await currentPdf.getPage(i);
+        const viewport = page.getViewport({ scale });
+        
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'pdf-page-container';
+        pageContainer.style.width = `${viewport.width}px`;
+        pageContainer.style.height = `${viewport.height}px`;
+        pageContainer.dataset.pageNum = i.toString();
+        pageContainer.dataset.rendered = 'false';
+        
+        // 创建canvas占位
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        // 创建文本层占位
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        
+        // 添加加载提示
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'page-loading-overlay';
+        loadingOverlay.innerHTML = `<p>第 ${i} 页</p>`;
+        
+        pageContainer.append(canvas, textLayerDiv, loadingOverlay);
+        containers.push(pageContainer);
+    }
+    
+    // 清空并一次性添加所有容器
+    pdfViewer.innerHTML = '';
+    containers.forEach(container => pdfViewer.appendChild(container));
 }

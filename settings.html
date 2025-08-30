@@ -92,16 +92,27 @@
                             <small>选中文本时自动显示翻译选项</small>
                         </div>
                         <div class="setting-group">
-                            <label for="pdf-zoom-level">默认缩放级别</label>
-                            <select id="pdf-zoom-level">
-                                <option value="0.5">50%</option>
-                                <option value="0.75">75%</option>
-                                <option value="1" selected>100%</option>
-                                <option value="1.25">125%</option>
-                                <option value="1.5">150%</option>
-                                <option value="2">200%</option>
-                            </select>
-                            <small>PDF 文档的默认显示缩放级别</small>
+                            <label for="text-selection-color">文本选区颜色</label>
+                            <div class="color-picker-container">
+                                <input type="color" id="text-selection-color" value="#007bff" />
+                                <div class="color-preview-group">
+                                    <div class="color-preset" data-color="#007bff" style="background-color: #007bff;" title="默认蓝色"></div>
+                                    <div class="color-preset" data-color="#28a745" style="background-color: #28a745;" title="绿色"></div>
+                                    <div class="color-preset" data-color="#ffc107" style="background-color: #ffc107;" title="黄色"></div>
+                                    <div class="color-preset" data-color="#dc3545" style="background-color: #dc3545;" title="红色"></div>
+                                    <div class="color-preset" data-color="#6f42c1" style="background-color: #6f42c1;" title="紫色"></div>
+                                    <div class="color-preset" data-color="#fd7e14" style="background-color: #fd7e14;" title="橙色"></div>
+                                </div>
+                            </div>
+                            <small>设置PDF文档中文本选择时的高亮颜色</small>
+                        </div>
+                        <div class="setting-group">
+                            <label for="selection-opacity">选区透明度</label>
+                            <div class="slider-container">
+                                <input type="range" id="selection-opacity" min="10" max="80" value="30" step="5" />
+                                <span class="slider-value">30%</span>
+                            </div>
+                            <small>调整文本选区的透明度（10% - 80%）</small>
                         </div>
                     </div>
                 </div>

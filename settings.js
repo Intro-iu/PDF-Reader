@@ -18,8 +18,16 @@ class SettingsManager {
     
     loadSettings() {
         try {
+            // 首先尝试从localStorage读取（作为临时存储）
             const savedSettings = localStorage.getItem('pdfReaderSettings');
-            return savedSettings ? { ...this.defaultSettings, ...JSON.parse(savedSettings) } : { ...this.defaultSettings };
+            if (savedSettings) {
+                // 如果有localStorage数据，加载它但提示用户保存到文件
+                const settings = { ...this.defaultSettings, ...JSON.parse(savedSettings) };
+                // 清除localStorage，提示用户使用文件存储
+                localStorage.removeItem('pdfReaderSettings');
+                return settings;
+            }
+            return { ...this.defaultSettings };
         } catch (error) {
             console.error('加载设置失败:', error);
             return { ...this.defaultSettings };
@@ -27,11 +35,39 @@ class SettingsManager {
     }
     
     saveSettings() {
+        // 直接保存到配置文件，不使用localStorage
+        return this.saveToConfigFile();
+    }
+    
+    // 保存到配置文件的方法
+    async saveToConfigFile() {
         try {
-            localStorage.setItem('pdfReaderSettings', JSON.stringify(this.settings));
+            // 创建配置文件内容
+            const configData = {
+                ...this.settings,
+                lastModified: new Date().toISOString()
+            };
+            
+            // 生成并下载配置文件
+            const blob = new Blob([JSON.stringify(configData, null, 2)], { 
+                type: 'application/json' 
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'config.json'; // 简洁的文件名
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            this.showNotification('配置已保存到 config.json', 'success');
             return true;
         } catch (error) {
-            console.error('保存设置失败:', error);
+            console.error('保存配置文件失败:', error);
+            this.showNotification('保存配置文件失败: ' + error.message, 'error');
             return false;
         }
     }
@@ -49,7 +85,6 @@ class SettingsManager {
     
     initializeSettingsUI() {
         // 填充基本设置
-        document.getElementById('translate-target-lang').value = this.settings.translateTargetLang;
         document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
         document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
         document.getElementById('pdf-zoom-level').value = this.settings.pdfZoomLevel;
@@ -216,6 +251,8 @@ class SettingsManager {
         const saveButton = document.getElementById('settings-save');
         const resetButton = document.getElementById('settings-reset');
         const backButton = document.getElementById('back-button');
+        const importButton = document.getElementById('import-config');
+        const importFileInput = document.getElementById('import-config-file');
         
         // 返回按钮
         backButton.addEventListener('click', () => {
@@ -236,10 +273,9 @@ class SettingsManager {
             this.updateSetting('activeTranslateModel', e.target.value);
         });
         
-        // 保存设置
+        // 保存设置（现在直接保存到文件）
         saveButton.addEventListener('click', () => {
             this.collectAndSaveSettings();
-            this.showNotification('设置已保存', 'success');
         });
         
         // 重置设置
@@ -248,6 +284,15 @@ class SettingsManager {
                 this.resetSettings();
                 this.showNotification('设置已重置', 'info');
             }
+        });
+        
+        // 导入配置
+        importButton.addEventListener('click', () => {
+            importFileInput.click();
+        });
+        
+        importFileInput.addEventListener('change', (e) => {
+            this.importConfig(e.target.files[0]);
         });
         
         // 自动保存设置变化
@@ -262,7 +307,6 @@ class SettingsManager {
     }
     
     collectAndSaveSettings() {
-        this.settings.translateTargetLang = document.getElementById('translate-target-lang').value;
         this.settings.autoSaveSettings = document.getElementById('auto-save-settings').checked;
         this.settings.enableSelectionTranslation = document.getElementById('enable-selection-translation').checked;
         this.settings.pdfZoomLevel = parseFloat(document.getElementById('pdf-zoom-level').value);
@@ -283,7 +327,7 @@ class SettingsManager {
         const modelId = type === 'chat' ? this.settings.activeChatModel : this.settings.activeTranslateModel;
         return this.settings.aiModels.find(model => model.id === modelId);
     }
-    
+
     showNotification(message, type = 'info') {
         // 创建通知元素
         const notification = document.createElement('div');
@@ -347,6 +391,91 @@ class SettingsManager {
     
     getSetting(key) {
         return this.settings[key];
+    }
+    
+    // 从文件导入配置
+    importConfig(file) {
+        if (!file) return;
+        
+        // 检查文件类型
+        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+            this.showNotification('请选择JSON格式的配置文件', 'error');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const configData = JSON.parse(e.target.result);
+                
+                // 验证配置文件格式
+                if (!this.validateConfigFile(configData)) {
+                    this.showNotification('配置文件格式不正确', 'error');
+                    return;
+                }
+                
+                // 备份当前设置
+                const backupSettings = { ...this.settings };
+                
+                try {
+                    // 导入设置
+                    this.settings = { ...this.defaultSettings, ...configData.settings };
+                    
+                    // 更新UI
+                    this.initializeSettingsUI();
+                    
+                    // 保存设置
+                    this.saveSettings();
+                    
+                    this.showNotification('配置已导入', 'success');
+                } catch (importError) {
+                    // 如果导入失败，恢复备份
+                    this.settings = backupSettings;
+                    this.initializeSettingsUI();
+                    console.error('导入配置时出错:', importError);
+                    this.showNotification('导入配置时出错，已恢复原设置', 'error');
+                }
+            } catch (parseError) {
+                console.error('解析配置文件失败:', parseError);
+                this.showNotification('配置文件格式错误', 'error');
+            }
+        };
+        
+        reader.onerror = () => {
+            this.showNotification('读取文件失败', 'error');
+        };
+        
+        reader.readAsText(file);
+        
+        // 清空文件输入，以便可以重复导入同一文件
+        document.getElementById('import-config-file').value = '';
+    }
+    
+    // 验证配置文件格式
+    validateConfigFile(configData) {
+        // 检查基本结构
+        if (!configData || typeof configData !== 'object') {
+            return false;
+        }
+        
+        // 检查是否有settings字段
+        if (!configData.settings || typeof configData.settings !== 'object') {
+            return false;
+        }
+        
+        // 检查应用名称（可选）
+        if (configData.appName && configData.appName !== 'PDF-Reader') {
+            console.warn('配置文件可能来自其他应用，但仍尝试导入');
+        }
+        
+        // 检查版本兼容性（可选）
+        if (configData.version) {
+            const version = configData.version;
+            // 这里可以添加版本兼容性检查逻辑
+            console.log(`导入配置文件版本: ${version}`);
+        }
+        
+        return true;
     }
 }
 

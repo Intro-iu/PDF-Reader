@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2025-08-30T00:00:00.000Z",
+  "appName": "PDF-Reader",
+  "settings": {
+    "aiModels": [
+      {
+        "id": "model_example_001",
+        "name": "GPT-3.5 示例",
+        "modelId": "gpt-3.5-turbo",
+        "apiEndpoint": "https://api.openai.com/v1/chat/completions",
+        "apiKey": "your-api-key-here",
+        "supportsChat": true,
+        "supportsTranslation": true
+      },
+      {
+        "id": "model_example_002",
+        "name": "Claude 示例",
+        "modelId": "claude-3-sonnet",
+        "apiEndpoint": "https://api.anthropic.com/v1/messages",
+        "apiKey": "your-api-key-here",
+        "supportsChat": true,
+        "supportsTranslation": false
+      }
+    ],
+    "activeChatModel": "model_example_001",
+    "activeTranslateModel": "model_example_001",
+    "translateTargetLang": "zh",
+    "autoSaveSettings": true,
+    "enableSelectionTranslation": true,
+    "pdfZoomLevel": 1,
+    "sidebarWidth": 450
+  }
+}

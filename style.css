@@ -250,6 +250,45 @@ body.resizing-sidebar * {
     background-color: var(--background-color);
 }
 
+.translate-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: var(--surface-color);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.translate-controls label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+}
+
+.translate-controls select {
+    background-color: var(--input-background);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    color: var(--text-primary-color);
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 100px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.translate-controls select:focus {
+    outline: none;
+    border-color: var(--input-focus-border);
+}
+
+.translate-controls select:hover {
+    border-color: var(--input-focus-border);
+}
+
 #selected-text, #translation-output { 
     background-color: var(--input-background); 
     padding: 16px; 
@@ -1031,11 +1070,24 @@ body.resizing-sidebar * {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
 .btn-secondary:hover {
     background-color: var(--hover-bg);
     color: var(--text-primary-color);
+}
+
+.btn-secondary svg {
+    width: 16px;
+    height: 16px;
+}
+
+.import-config-container {
+    position: relative;
 }
 
 /* === 响应式设计 === */

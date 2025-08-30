@@ -510,14 +510,6 @@ pdfViewer.addEventListener('mouseup', () => {
     if (selection) {
         selectedTextContainer.textContent = selection;
         chatInput.value = `请帮我分析这段内容:"${selection}"`;
-        // 不再自动切换到聊天标签页，保持当前侧边栏状态
-        // 如果当前在聊天标签页，则聚焦输入框
-        const chatTabButton = document.querySelector('.tab-button[data-tab="chat-panel"]');
-        if (chatTabButton && chatTabButton.classList.contains('active')) {
-            chatInput.focus();
-            chatInput.style.height = 'auto';
-            chatInput.style.height = `${chatInput.scrollHeight}px`;
-        }
     }
 });
 

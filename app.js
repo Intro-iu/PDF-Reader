@@ -184,6 +184,7 @@ tabsContainer.addEventListener('click', (e) => {
 fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file || file.type !== 'application/pdf') return;
+    
     const reader = new FileReader();
     reader.onload = (event) => renderPdf(event.target.result);
     reader.readAsArrayBuffer(file);

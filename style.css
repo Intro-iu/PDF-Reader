@@ -1179,3 +1179,48 @@ body.resizing-sidebar * {
         width: 100%;
     }
 }
+
+/* === 右键菜单样式 === */
+.context-menu {
+    position: fixed;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 180px;
+    backdrop-filter: blur(10px);
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--text-primary-color);
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.context-menu-item:hover {
+    background-color: var(--hover-bg);
+}
+
+.context-menu-item svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 6px 0;
+}
+
+.context-menu-item:active {
+    background-color: var(--primary-color);
+    color: white;
+}

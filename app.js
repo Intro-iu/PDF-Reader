@@ -206,6 +206,103 @@ pdfViewer.addEventListener('mouseup', () => {
     }
 });
 
+// --- 右键菜单功能 ---
+const contextMenu = document.getElementById('context-menu');
+let currentSelectedText = '';
+
+// 监听PDF区域的右键事件
+pdfViewer.addEventListener('contextmenu', (e) => {
+    const selection = window.getSelection().toString().trim();
+    
+    // 只有选中文本时才显示菜单
+    if (selection) {
+        e.preventDefault(); // 阻止默认右键菜单
+        currentSelectedText = selection;
+        
+        // 显示自定义右键菜单
+        showContextMenu(e.clientX, e.clientY);
+    }
+});
+
+// 显示右键菜单
+function showContextMenu(x, y) {
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    
+    // 确保菜单不超出屏幕边界
+    const rect = contextMenu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+        contextMenu.style.left = `${x - rect.width}px`;
+    }
+    if (rect.bottom > window.innerHeight) {
+        contextMenu.style.top = `${y - rect.height}px`;
+    }
+}
+
+// 隐藏右键菜单
+function hideContextMenu() {
+    contextMenu.style.display = 'none';
+}
+
+// 点击页面其他地方隐藏菜单
+document.addEventListener('click', hideContextMenu);
+
+// 处理右键菜单项点击
+contextMenu.addEventListener('click', (e) => {
+    e.stopPropagation(); // 阻止事件冒泡
+    
+    const action = e.target.closest('.context-menu-item')?.dataset.action;
+    if (!action) return;
+    
+    // 先保存当前选中文本，避免DOM操作导致选区丢失
+    const savedSelection = currentSelectedText;
+    
+    switch (action) {
+        case 'translate':
+            // 优先确保侧边栏打开，避免布局变化影响选区
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                sidebarToggle.classList.remove('collapsed');
+                updateSidebarTogglePosition();
+            }
+            // 切换到翻译标签页并填充选中文本
+            selectedTextContainer.textContent = savedSelection;
+            document.querySelector('.tab-button[data-tab="translate-panel"]').click();
+            break;
+            
+        case 'chat':
+            // 优先确保侧边栏打开，避免布局变化影响选区
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                sidebarToggle.classList.remove('collapsed');
+                updateSidebarTogglePosition();
+            }
+            // 切换到AI对话标签页并填充选中文本
+            chatInput.value = `请帮我分析这段内容:"${savedSelection}"`;
+            document.querySelector('.tab-button[data-tab="chat-panel"]').click();
+            // 延迟聚焦输入框，避免布局变化时的冲突
+            setTimeout(() => {
+                chatInput.focus();
+                chatInput.style.height = 'auto';
+                chatInput.style.height = `${chatInput.scrollHeight}px`;
+            }, 100);
+            break;
+            
+        case 'copy':
+            // 复制选中文本到剪贴板
+            navigator.clipboard.writeText(savedSelection).then(() => {
+                // 可以添加一个简单的提示
+                console.log('文本已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+            break;
+    }
+    
+    hideContextMenu();
+});
+
 // --- VSC Copilot-style Chat Logic ---
 function handleUserChat() {
     const userMessage = chatInput.value.trim();

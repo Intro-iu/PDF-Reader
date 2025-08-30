@@ -46,7 +46,106 @@ themeToggleButton.addEventListener('click', () => {
 sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     sidebarToggle.classList.toggle('collapsed');
+    updateSidebarTogglePosition();
 });
+
+// --- 侧边栏宽度调整功能 ---
+class SidebarResizer {
+    constructor() {
+        this.sidebar = document.getElementById('sidebar');
+        this.sidebarToggle = document.getElementById('sidebar-toggle');
+        this.resizer = document.getElementById('sidebar-resizer');
+        this.isResizing = false;
+        this.minWidth = 300;
+        this.maxWidth = 800;
+        this.defaultWidth = 450;
+        
+        this.initializeResizer();
+        this.loadSidebarWidth();
+    }
+    
+    initializeResizer() {
+        this.resizer.addEventListener('mousedown', this.startResize.bind(this));
+        document.addEventListener('mousemove', this.resize.bind(this));
+        document.addEventListener('mouseup', this.stopResize.bind(this));
+        
+        // 防止拖拽时选中文本
+        this.resizer.addEventListener('selectstart', (e) => e.preventDefault());
+    }
+    
+    startResize(e) {
+        this.isResizing = true;
+        this.resizer.classList.add('resizing');
+        document.body.classList.add('resizing-sidebar');
+        e.preventDefault();
+    }
+    
+    resize(e) {
+        if (!this.isResizing) return;
+        
+        const containerRect = document.getElementById('main-content').getBoundingClientRect();
+        const newWidth = containerRect.right - e.clientX;
+        
+        // 限制宽度在最小值和最大值之间
+        const clampedWidth = Math.max(this.minWidth, Math.min(this.maxWidth, newWidth));
+        
+        this.setSidebarWidth(clampedWidth);
+        e.preventDefault();
+    }
+    
+    stopResize() {
+        if (!this.isResizing) return;
+        
+        this.isResizing = false;
+        this.resizer.classList.remove('resizing');
+        document.body.classList.remove('resizing-sidebar');
+        
+        // 保存宽度设置
+        this.saveSidebarWidth();
+    }
+    
+    setSidebarWidth(width) {
+        this.sidebar.style.width = `${width}px`;
+        this.updateSidebarTogglePosition(width);
+    }
+    
+    updateSidebarTogglePosition(width) {
+        if (!width) {
+            const currentWidth = this.sidebar.offsetWidth;
+            width = currentWidth || this.defaultWidth;
+        }
+        
+        if (!this.sidebar.classList.contains('collapsed')) {
+            this.sidebarToggle.style.right = `${width}px`;
+        } else {
+            this.sidebarToggle.style.right = '0px';
+        }
+    }
+    
+    saveSidebarWidth() {
+        const width = this.sidebar.offsetWidth;
+        localStorage.setItem('sidebarWidth', width.toString());
+    }
+    
+    loadSidebarWidth() {
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            const width = parseInt(savedWidth, 10);
+            if (width >= this.minWidth && width <= this.maxWidth) {
+                this.setSidebarWidth(width);
+            }
+        } else {
+            this.setSidebarWidth(this.defaultWidth);
+        }
+    }
+}
+
+// 更新侧边栏切换按钮位置的全局函数
+function updateSidebarTogglePosition() {
+    if (window.sidebarResizer) {
+        window.sidebarResizer.updateSidebarTogglePosition();
+    }
+}
 
 tabsContainer.addEventListener('click', (e) => {
     const clickedTab = e.target.closest('.tab-button');
@@ -249,6 +348,11 @@ function initializeApp() {
 
 // Initialize app when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
+
+// 初始化侧边栏调整器
+document.addEventListener('DOMContentLoaded', () => {
+    window.sidebarResizer = new SidebarResizer();
+});
 
 // --- Initial PDF Rendering ---
 async function renderPdf(data) {

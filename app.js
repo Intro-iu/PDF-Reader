@@ -280,3 +280,213 @@ async function renderPdf(data) {
         pdfViewer.innerHTML = `<p>加载 PDF 出错: ${error.message}</p>`;
     }
 }
+
+// --- 设置功能 ---
+class SettingsManager {
+    constructor() {
+        this.defaultSettings = {
+            aiApiEndpoint: '',
+            aiApiKey: '',
+            aiModel: 'gpt-3.5-turbo',
+            translateApiEndpoint: '',
+            translateApiKey: '',
+            translateTargetLang: 'zh',
+            autoSaveSettings: true,
+            enableSelectionTranslation: true,
+            pdfZoomLevel: 1
+        };
+        
+        this.settings = this.loadSettings();
+        this.initializeSettingsUI();
+        this.bindSettingsEvents();
+    }
+    
+    loadSettings() {
+        try {
+            const savedSettings = localStorage.getItem('pdfReaderSettings');
+            return savedSettings ? { ...this.defaultSettings, ...JSON.parse(savedSettings) } : { ...this.defaultSettings };
+        } catch (error) {
+            console.error('加载设置失败:', error);
+            return { ...this.defaultSettings };
+        }
+    }
+    
+    saveSettings() {
+        try {
+            localStorage.setItem('pdfReaderSettings', JSON.stringify(this.settings));
+            return true;
+        } catch (error) {
+            console.error('保存设置失败:', error);
+            return false;
+        }
+    }
+    
+    updateSetting(key, value) {
+        this.settings[key] = value;
+        if (this.settings.autoSaveSettings) {
+            this.saveSettings();
+        }
+    }
+    
+    initializeSettingsUI() {
+        // 填充设置表单
+        document.getElementById('ai-api-endpoint').value = this.settings.aiApiEndpoint;
+        document.getElementById('ai-api-key').value = this.settings.aiApiKey;
+        document.getElementById('ai-model').value = this.settings.aiModel;
+        document.getElementById('translate-api-endpoint').value = this.settings.translateApiEndpoint;
+        document.getElementById('translate-api-key').value = this.settings.translateApiKey;
+        document.getElementById('translate-target-lang').value = this.settings.translateTargetLang;
+        document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
+        document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
+        document.getElementById('pdf-zoom-level').value = this.settings.pdfZoomLevel;
+    }
+    
+    bindSettingsEvents() {
+        const modal = document.getElementById('settings-modal');
+        const settingsToggle = document.getElementById('settings-toggle');
+        const modalClose = document.getElementById('modal-close');
+        const saveButton = document.getElementById('settings-save');
+        const resetButton = document.getElementById('settings-reset');
+        
+        // 打开设置模态框
+        settingsToggle.addEventListener('click', () => {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
+        
+        // 关闭设置模态框
+        const closeModal = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+        
+        modalClose.addEventListener('click', closeModal);
+        
+        // 点击模态框外部关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                closeModal();
+            }
+        });
+        
+        // 保存设置
+        saveButton.addEventListener('click', () => {
+            this.collectAndSaveSettings();
+            closeModal();
+            this.showNotification('设置已保存', 'success');
+        });
+        
+        // 重置设置
+        resetButton.addEventListener('click', () => {
+            if (confirm('确定要重置所有设置吗？这将恢复到默认值。')) {
+                this.resetSettings();
+                this.showNotification('设置已重置', 'info');
+            }
+        });
+        
+        // 自动保存设置变化
+        const inputs = modal.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                if (this.settings.autoSaveSettings) {
+                    this.collectAndSaveSettings();
+                }
+            });
+        });
+    }
+    
+    collectAndSaveSettings() {
+        this.settings.aiApiEndpoint = document.getElementById('ai-api-endpoint').value.trim();
+        this.settings.aiApiKey = document.getElementById('ai-api-key').value.trim();
+        this.settings.aiModel = document.getElementById('ai-model').value;
+        this.settings.translateApiEndpoint = document.getElementById('translate-api-endpoint').value.trim();
+        this.settings.translateApiKey = document.getElementById('translate-api-key').value.trim();
+        this.settings.translateTargetLang = document.getElementById('translate-target-lang').value;
+        this.settings.autoSaveSettings = document.getElementById('auto-save-settings').checked;
+        this.settings.enableSelectionTranslation = document.getElementById('enable-selection-translation').checked;
+        this.settings.pdfZoomLevel = parseFloat(document.getElementById('pdf-zoom-level').value);
+        
+        this.saveSettings();
+    }
+    
+    resetSettings() {
+        this.settings = { ...this.defaultSettings };
+        this.initializeSettingsUI();
+        this.saveSettings();
+    }
+    
+    showNotification(message, type = 'info') {
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // 添加通知样式
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '12px 16px',
+            borderRadius: '6px',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '500',
+            zIndex: '10001',
+            opacity: '0',
+            transform: 'translateX(100%)',
+            transition: 'all 0.3s ease'
+        });
+        
+        // 设置背景色
+        switch (type) {
+            case 'success':
+                notification.style.backgroundColor = '#10b981';
+                break;
+            case 'error':
+                notification.style.backgroundColor = '#ef4444';
+                break;
+            case 'warning':
+                notification.style.backgroundColor = '#f59e0b';
+                break;
+            default:
+                notification.style.backgroundColor = '#3b82f6';
+        }
+        
+        document.body.appendChild(notification);
+        
+        // 显示动画
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // 自动移除
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    getSettings() {
+        return { ...this.settings };
+    }
+    
+    getSetting(key) {
+        return this.settings[key];
+    }
+}
+
+// 初始化设置管理器
+const settingsManager = new SettingsManager();

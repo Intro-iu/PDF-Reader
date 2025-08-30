@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF 阅读器</title>
+    <title>论文阅读器</title>
 
-    <!-- 关键修复：引入 PDF.js 官方的 viewer CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.css">
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,17 +18,48 @@
             <div id="pdf-viewer">
                 <p>请在上方选择一个 PDF 文件进行预览</p>
             </div>
+            
+            <button id="sidebar-toggle" title="收起/展开侧边栏">»</button>
+
             <aside id="sidebar">
-                <h3>划选内容</h3>
-                <pre id="selected-text">在这里显示划选的文本</pre>
+                <div class="sidebar-header">
+                    <div class="sidebar-tabs">
+                        <button class="tab-button" data-tab="translate-panel">翻译</button>
+                        <button class="tab-button active" data-tab="chat-panel">AI 对话</button>
+                    </div>
+                </div>
+                <div class="sidebar-panels">
+                    <div id="translate-panel" class="tab-panel">
+                        <h4>原文</h4>
+                        <pre id="selected-text">在这里显示划选的文本</pre>
+                        <h4>译文</h4>
+                        <div id="translation-output">翻译结果将显示在这里...</div>
+                    </div>
+                    <!-- VSC-style Layout -->
+                    <div id="chat-panel" class="tab-panel active">
+                        <div id="chat-messages">
+                            <!-- Welcome View -->
+                            <div id="chat-welcome-view">
+                                <div class="welcome-icon">🤖</div>
+                                <h3>AI 助手</h3>
+                                <p class="welcome-subtitle">选择文本或直接提问</p>
+                            </div>
+                        </div>
+                        <div id="chat-input-section">
+                            <div id="chat-input-container">
+                                <textarea id="chat-input" placeholder="输入你的问题..." rows="1"></textarea>
+                                <button id="chat-send" title="发送">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </aside>
         </div>
     </div>
 
-    <!-- 引入 PDF.js 库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    
-    <!-- 引入我们自己的脚本 -->
     <script src="app.js"></script>
 </body>
 </html>

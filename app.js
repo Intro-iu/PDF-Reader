@@ -285,11 +285,9 @@ async function renderPdf(data) {
 class SettingsManager {
     constructor() {
         this.defaultSettings = {
-            aiApiEndpoint: '',
-            aiApiKey: '',
-            aiModel: 'gpt-3.5-turbo',
-            translateApiEndpoint: '',
-            translateApiKey: '',
+            aiModels: [],
+            activeChatModel: '',
+            activeTranslateModel: '',
             translateTargetLang: 'zh',
             autoSaveSettings: true,
             enableSelectionTranslation: true,
@@ -328,17 +326,172 @@ class SettingsManager {
         }
     }
     
+    generateModelId() {
+        return 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
     initializeSettingsUI() {
-        // 填充设置表单
-        document.getElementById('ai-api-endpoint').value = this.settings.aiApiEndpoint;
-        document.getElementById('ai-api-key').value = this.settings.aiApiKey;
-        document.getElementById('ai-model').value = this.settings.aiModel;
-        document.getElementById('translate-api-endpoint').value = this.settings.translateApiEndpoint;
-        document.getElementById('translate-api-key').value = this.settings.translateApiKey;
+        // 填充基本设置
         document.getElementById('translate-target-lang').value = this.settings.translateTargetLang;
         document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
         document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
         document.getElementById('pdf-zoom-level').value = this.settings.pdfZoomLevel;
+        
+        // 渲染AI模型列表
+        this.renderAiModelsList();
+        this.updateModelSelectors();
+    }
+    
+    renderAiModelsList() {
+        const container = document.getElementById('ai-models-list');
+        
+        if (this.settings.aiModels.length === 0) {
+            container.innerHTML = `
+                <div class="empty-models-message">
+                    <p>还没有配置任何AI模型</p>
+                    <p>点击"添加模型"按钮开始配置</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = this.settings.aiModels.map(model => `
+            <div class="ai-model-item" data-model-id="${model.id}">
+                <div class="ai-model-header">
+                    <span class="ai-model-name">${model.name || '未命名模型'}</span>
+                    <button type="button" class="ai-model-delete" onclick="settingsManager.deleteAiModel('${model.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="ai-model-fields">
+                    <div class="ai-model-field">
+                        <label>模型名称</label>
+                        <input type="text" value="${model.name || ''}" 
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'name', this.value)">
+                    </div>
+                    <div class="ai-model-field">
+                        <label>模型标识</label>
+                        <input type="text" value="${model.modelId || ''}" 
+                               placeholder="如: gpt-3.5-turbo"
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'modelId', this.value)">
+                    </div>
+                    <div class="ai-model-field full-width">
+                        <label>API 端点</label>
+                        <input type="url" value="${model.apiEndpoint || ''}" 
+                               placeholder="https://api.example.com"
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'apiEndpoint', this.value)">
+                    </div>
+                    <div class="ai-model-field full-width">
+                        <label>API 密钥</label>
+                        <input type="password" value="${model.apiKey || ''}" 
+                               placeholder="输入API密钥"
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'apiKey', this.value)">
+                    </div>
+                </div>
+                <div class="ai-model-capabilities">
+                    <label class="capability-checkbox">
+                        <input type="checkbox" ${model.supportsChat ? 'checked' : ''} 
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'supportsChat', this.checked)">
+                        支持对话
+                    </label>
+                    <label class="capability-checkbox">
+                        <input type="checkbox" ${model.supportsTranslation ? 'checked' : ''} 
+                               onchange="settingsManager.updateAiModelField('${model.id}', 'supportsTranslation', this.checked)">
+                        支持翻译
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    addAiModel() {
+        const newModel = {
+            id: this.generateModelId(),
+            name: '新模型',
+            modelId: '',
+            apiEndpoint: '',
+            apiKey: '',
+            supportsChat: true,
+            supportsTranslation: true
+        };
+        
+        this.settings.aiModels.push(newModel);
+        this.renderAiModelsList();
+        this.updateModelSelectors();
+        
+        if (this.settings.autoSaveSettings) {
+            this.saveSettings();
+        }
+    }
+    
+    deleteAiModel(modelId) {
+        if (confirm('确定要删除这个模型配置吗？')) {
+            this.settings.aiModels = this.settings.aiModels.filter(model => model.id !== modelId);
+            
+            // 如果删除的是当前选中的模型，清空选择
+            if (this.settings.activeChatModel === modelId) {
+                this.settings.activeChatModel = '';
+            }
+            if (this.settings.activeTranslateModel === modelId) {
+                this.settings.activeTranslateModel = '';
+            }
+            
+            this.renderAiModelsList();
+            this.updateModelSelectors();
+            
+            if (this.settings.autoSaveSettings) {
+                this.saveSettings();
+            }
+        }
+    }
+    
+    updateAiModelField(modelId, field, value) {
+        const model = this.settings.aiModels.find(m => m.id === modelId);
+        if (model) {
+            model[field] = value;
+            this.updateModelSelectors();
+            
+            if (this.settings.autoSaveSettings) {
+                this.saveSettings();
+            }
+        }
+    }
+    
+    updateModelSelectors() {
+        const chatSelect = document.getElementById('active-chat-model');
+        const translateSelect = document.getElementById('active-translate-model');
+        
+        // 清空现有选项
+        chatSelect.innerHTML = '<option value="">请选择模型</option>';
+        translateSelect.innerHTML = '<option value="">请选择模型</option>';
+        
+        // 添加支持对话的模型
+        this.settings.aiModels
+            .filter(model => model.supportsChat && model.name && model.apiEndpoint)
+            .forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                if (model.id === this.settings.activeChatModel) {
+                    option.selected = true;
+                }
+                chatSelect.appendChild(option);
+            });
+        
+        // 添加支持翻译的模型
+        this.settings.aiModels
+            .filter(model => model.supportsTranslation && model.name && model.apiEndpoint)
+            .forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                if (model.id === this.settings.activeTranslateModel) {
+                    option.selected = true;
+                }
+                translateSelect.appendChild(option);
+            });
     }
     
     bindSettingsEvents() {
@@ -347,6 +500,12 @@ class SettingsManager {
         const modalClose = document.getElementById('modal-close');
         const saveButton = document.getElementById('settings-save');
         const resetButton = document.getElementById('settings-reset');
+        const addModelButton = document.getElementById('add-ai-model');
+        
+        // 添加AI模型
+        addModelButton.addEventListener('click', () => {
+            this.addAiModel();
+        });
         
         // 打开设置模态框
         settingsToggle.addEventListener('click', () => {
@@ -376,6 +535,15 @@ class SettingsManager {
             }
         });
         
+        // 模型选择器变化
+        document.getElementById('active-chat-model').addEventListener('change', (e) => {
+            this.updateSetting('activeChatModel', e.target.value);
+        });
+        
+        document.getElementById('active-translate-model').addEventListener('change', (e) => {
+            this.updateSetting('activeTranslateModel', e.target.value);
+        });
+        
         // 保存设置
         saveButton.addEventListener('click', () => {
             this.collectAndSaveSettings();
@@ -392,7 +560,7 @@ class SettingsManager {
         });
         
         // 自动保存设置变化
-        const inputs = modal.querySelectorAll('input, select');
+        const inputs = modal.querySelectorAll('input:not([onchange]), select:not([onchange])');
         inputs.forEach(input => {
             input.addEventListener('change', () => {
                 if (this.settings.autoSaveSettings) {
@@ -403,15 +571,12 @@ class SettingsManager {
     }
     
     collectAndSaveSettings() {
-        this.settings.aiApiEndpoint = document.getElementById('ai-api-endpoint').value.trim();
-        this.settings.aiApiKey = document.getElementById('ai-api-key').value.trim();
-        this.settings.aiModel = document.getElementById('ai-model').value;
-        this.settings.translateApiEndpoint = document.getElementById('translate-api-endpoint').value.trim();
-        this.settings.translateApiKey = document.getElementById('translate-api-key').value.trim();
         this.settings.translateTargetLang = document.getElementById('translate-target-lang').value;
         this.settings.autoSaveSettings = document.getElementById('auto-save-settings').checked;
         this.settings.enableSelectionTranslation = document.getElementById('enable-selection-translation').checked;
         this.settings.pdfZoomLevel = parseFloat(document.getElementById('pdf-zoom-level').value);
+        this.settings.activeChatModel = document.getElementById('active-chat-model').value;
+        this.settings.activeTranslateModel = document.getElementById('active-translate-model').value;
         
         this.saveSettings();
     }
@@ -420,6 +585,12 @@ class SettingsManager {
         this.settings = { ...this.defaultSettings };
         this.initializeSettingsUI();
         this.saveSettings();
+    }
+    
+    // 添加一个获取当前选中模型配置的方法
+    getActiveModel(type) {
+        const modelId = type === 'chat' ? this.settings.activeChatModel : this.settings.activeTranslateModel;
+        return this.settings.aiModels.find(model => model.id === modelId);
     }
     
     showNotification(message, type = 'info') {

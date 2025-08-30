@@ -101,40 +101,38 @@
             </div>
             <div class="modal-body">
                 <div class="settings-section">
-                    <h3>API 配置</h3>
-                    <div class="setting-group">
-                        <label for="ai-api-endpoint">AI API 端点</label>
-                        <input type="url" id="ai-api-endpoint" placeholder="https://api.example.com" />
-                        <small>配置 AI 对话功能的 API 端点地址</small>
-                    </div>
-                    <div class="setting-group">
-                        <label for="ai-api-key">API 密钥</label>
-                        <input type="password" id="ai-api-key" placeholder="输入您的 API 密钥" />
-                        <small>用于身份验证的 API 密钥</small>
-                    </div>
-                    <div class="setting-group">
-                        <label for="ai-model">AI 模型</label>
-                        <select id="ai-model">
-                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                            <option value="gpt-4">GPT-4</option>
-                            <option value="claude-3">Claude-3</option>
-                            <option value="custom">自定义</option>
-                        </select>
-                        <small>选择要使用的 AI 模型</small>
+                    <h3>AI 模型配置</h3>
+                    <div class="ai-models-container">
+                        <div class="ai-models-header">
+                            <p class="section-description">配置不同的AI模型用于对话和翻译功能</p>
+                            <button type="button" id="add-ai-model" class="btn-add">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                </svg>
+                                添加模型
+                            </button>
+                        </div>
+                        <div id="ai-models-list">
+                            <!-- AI模型配置项将在这里动态生成 -->
+                        </div>
                     </div>
                 </div>
                 
                 <div class="settings-section">
-                    <h3>翻译配置</h3>
+                    <h3>当前使用的模型</h3>
                     <div class="setting-group">
-                        <label for="translate-api-endpoint">翻译 API 端点</label>
-                        <input type="url" id="translate-api-endpoint" placeholder="https://translate.api.example.com" />
-                        <small>配置翻译功能的 API 端点地址</small>
+                        <label for="active-chat-model">对话模型</label>
+                        <select id="active-chat-model">
+                            <option value="">请先添加模型配置</option>
+                        </select>
+                        <small>选择用于AI对话的模型</small>
                     </div>
                     <div class="setting-group">
-                        <label for="translate-api-key">翻译 API 密钥</label>
-                        <input type="password" id="translate-api-key" placeholder="输入翻译 API 密钥" />
-                        <small>用于翻译服务的 API 密钥</small>
+                        <label for="active-translate-model">翻译模型</label>
+                        <select id="active-translate-model">
+                            <option value="">请先添加模型配置</option>
+                        </select>
+                        <small>选择用于文本翻译的模型</small>
                     </div>
                     <div class="setting-group">
                         <label for="translate-target-lang">目标语言</label>

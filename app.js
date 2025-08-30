@@ -190,6 +190,88 @@ fileInput.addEventListener('change', (e) => {
     reader.readAsArrayBuffer(file);
 });
 
+// --- PDF缩放控制器 ---
+let zoomSlider, zoomCurrentLabel, zoomControl, zoomResetBtn;
+let currentPdfData = null;
+let currentScale = 1.0;
+
+// 初始化缩放控制器
+function initializeZoomControl() {
+    zoomSlider = document.getElementById('pdf-zoom-slider');
+    zoomCurrentLabel = document.querySelector('.zoom-current');
+    zoomControl = document.querySelector('.pdf-zoom-control');
+    zoomResetBtn = document.getElementById('zoom-reset-btn');
+    
+    console.log('缩放控制器元素检查:', {
+        zoomSlider: !!zoomSlider,
+        zoomCurrentLabel: !!zoomCurrentLabel,
+        zoomControl: !!zoomControl,
+        zoomResetBtn: !!zoomResetBtn
+    });
+    
+    if (!zoomSlider || !zoomCurrentLabel || !zoomControl || !zoomResetBtn) {
+        console.error('缩放控制器元素未找到');
+        return;
+    }
+    
+    // 确保重置按钮可见
+    zoomResetBtn.style.display = 'flex';
+    
+    // 缩放滑条事件
+    zoomSlider.addEventListener('input', (e) => {
+        const zoomValue = parseInt(e.target.value);
+        currentScale = zoomValue / 100; // 转换为比例值
+        zoomCurrentLabel.textContent = `${zoomValue}%`;
+        
+        // 重新渲染PDF
+        if (currentPdfData) {
+            renderPdfWithScale(currentPdfData, currentScale);
+        }
+    });
+
+    // 重置缩放按钮
+    zoomResetBtn.addEventListener('click', () => {
+        console.log('重置按钮被点击');
+        zoomSlider.value = 100;
+        currentScale = 1.0;
+        zoomCurrentLabel.textContent = '100%';
+        
+        // 重新渲染PDF
+        if (currentPdfData) {
+            renderPdfWithScale(currentPdfData, currentScale);
+        }
+    });
+
+    // 鼠标滚轮缩放（在PDF区域内）
+    pdfViewer.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) { // Ctrl+滚轮 或 Cmd+滚轮
+            e.preventDefault();
+            
+            const delta = e.deltaY > 0 ? -5 : 5; // 滚轮向下减少，向上增加
+            const newValue = Math.max(25, Math.min(200, parseInt(zoomSlider.value) + delta));
+            
+            zoomSlider.value = newValue;
+            currentScale = newValue / 100;
+            zoomCurrentLabel.textContent = `${newValue}%`;
+            
+            if (currentPdfData) {
+                renderPdfWithScale(currentPdfData, currentScale);
+            }
+        }
+    });
+}
+
+// 显示/隐藏缩放控制器
+function toggleZoomControl(show) {
+    if (zoomControl) {
+        if (show) {
+            zoomControl.style.display = 'flex';
+        } else {
+            zoomControl.style.display = 'none';
+        }
+    }
+}
+
 pdfViewer.addEventListener('mouseup', () => {
     const selection = window.getSelection().toString().trim();
     if (selection) {
@@ -508,20 +590,30 @@ function saveTranslateTargetLang(targetLang) {
 // Initialize app when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
 
-// 初始化侧边栏调整器
+// 初始化侧边栏调整器和缩放控制器
 document.addEventListener('DOMContentLoaded', () => {
     window.sidebarResizer = new SidebarResizer();
+    initializeZoomControl(); // 初始化缩放控制器
 });
 
 // --- Initial PDF Rendering ---
 async function renderPdf(data) {
+    currentPdfData = data; // 保存PDF数据用于缩放
+    currentScale = 1.0; // 重置缩放比例
+    zoomSlider.value = 100;
+    zoomCurrentLabel.textContent = '100%';
+    toggleZoomControl(true); // 显示缩放控制器
+    
+    await renderPdfWithScale(data, currentScale);
+}
+
+async function renderPdfWithScale(data, scale) {
     pdfViewer.innerHTML = '<p>正在加载 PDF...</p>';
     try {
         const pdf = await pdfjsLib.getDocument(data).promise;
         pdfViewer.innerHTML = '';
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            const scale = 1.5;
             const viewport = page.getViewport({ scale });
             const pageContainer = document.createElement('div');
             pageContainer.className = 'pdf-page-container';
@@ -541,5 +633,6 @@ async function renderPdf(data) {
     } catch (error) {
         console.error('PDF渲染出错:', error);
         pdfViewer.innerHTML = `<p>加载 PDF 出错: ${error.message}</p>`;
+        toggleZoomControl(false); // 隐藏缩放控制器
     }
 }

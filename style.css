@@ -105,6 +105,153 @@ body, html {
 .pdf-page-container { position: relative; margin: 0 auto 24px auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); }
 .pdf-page-container canvas { display: block; }
 
+/* === PDF缩放控制器 === */
+.pdf-zoom-control {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 12px 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    transition: opacity 0.3s ease;
+}
+
+.pdf-zoom-control:hover {
+    opacity: 1;
+}
+
+.zoom-control-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.zoom-control-handle:hover {
+    background: var(--primary-hover-color);
+    transform: scale(1.05);
+}
+
+.zoom-control-handle svg {
+    width: 18px;
+    height: 18px;
+    color: white;
+}
+
+.zoom-slider-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.pdf-zoom-control:hover .zoom-slider-container {
+    opacity: 1;
+    max-height: 250px; /* 增加高度以容纳重置按钮 */
+}
+
+.zoom-slider {
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    appearance: slider-vertical; /* 标准属性 */
+    width: 6px;
+    height: 120px;
+    background: var(--input-background);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-labels {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.zoom-label {
+    font-size: 10px;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+
+.zoom-current {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.zoom-reset-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: var(--hover-bg);
+    color: var(--text-secondary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+
+.zoom-reset-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: scale(1.05);
+}
+
+.zoom-reset-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 当没有PDF时隐藏缩放控制器 */
+#pdf-viewer:not(:has(canvas)) ~ .pdf-zoom-control,
+#pdf-viewer:empty ~ .pdf-zoom-control {
+    display: none;
+}
+
 /* --- Sidebar & Toggle --- */
 #sidebar-toggle {
     position: absolute;

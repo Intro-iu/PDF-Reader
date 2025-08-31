@@ -16,6 +16,7 @@ const themeIconDark = document.getElementById('theme-icon-dark');
 const selectedTextContainer = document.getElementById('selected-text');
 const translationOutput = document.getElementById('translation-output');
 const autoTranslateToggle = document.getElementById('auto-translate-toggle');
+const translationStatus = document.getElementById('translation-status');
 
 // Chat Panel Elements
 const chatModelTitle = document.getElementById('chat-model-title');
@@ -616,13 +617,13 @@ function getSettingsFromLocalStorage() {
 async function handleTranslate(text) {
     const settings = getSettingsFromLocalStorage();
     if (!settings || !settings.activeTranslateModel) {
-        translationOutput.textContent = '请先在设置中选择一个有效的翻译模型。';
+        translationOutput.innerHTML = '<div class="placeholder">请先在设置中选择一个有效的翻译模型。</div>';
         return;
     }
 
     const model = settings.aiModels.find(m => m.id === settings.activeTranslateModel);
     if (!model) {
-        translationOutput.textContent = '选择的翻译模型无效，请在设置中检查。';
+        translationOutput.innerHTML = '<div class="placeholder">选择的翻译模型无效，请在设置中检查。</div>';
         return;
     }
 
@@ -633,15 +634,40 @@ async function handleTranslate(text) {
         .replace('[SELECTED_TEXT]', text)
         .replace('[TARGET_LANG]', targetLang);
 
-    translationOutput.textContent = '正在翻译中...';
+    // Show loading spinner and prepare for streaming
+    translationStatus.classList.add('loading');
+    translationOutput.innerHTML = '<div class="placeholder">正在翻译中...</div>';
+    translationOutput.classList.remove('error');
+    
+    let isFirstChunk = true;
+
+    const onChunk = (chunk) => {
+        if (isFirstChunk) {
+            translationOutput.textContent = ''; // Clear "正在翻译中..."
+            isFirstChunk = false;
+        }
+        translationOutput.textContent += chunk;
+    };
+
+    const onComplete = () => {
+        translationStatus.classList.remove('loading');
+    };
 
     try {
-        // Translation prompts usually don't need a separate system prompt
-        const translatedText = await getOpenAICompletion(prompt, null, model.apiEndpoint, model.apiKey, model.modelId);
-        translationOutput.textContent = translatedText;
+        await getOpenAICompletion(
+            prompt,
+            null,
+            model.apiEndpoint,
+            model.apiKey,
+            model.modelId,
+            onChunk,
+            onComplete
+        );
     } catch (error) {
         console.error('翻译失败:', error);
         translationOutput.textContent = `翻译失败: ${error.message}`;
+        translationOutput.classList.add('error');
+        translationStatus.classList.remove('loading');
     }
 }
 

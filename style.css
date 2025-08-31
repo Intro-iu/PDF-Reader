@@ -605,8 +605,8 @@ body.resizing-sidebar * {
     color: var(--text-primary-color);
 }
 
-#translation-output { 
-    min-height: 100px; 
+#translation-output {
+    height: auto;
 }
 
 #translate-panel h4 { 

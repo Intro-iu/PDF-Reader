@@ -15,6 +15,7 @@ const themeIconDark = document.getElementById('theme-icon-dark');
 // Translate Panel Elements
 const selectedTextContainer = document.getElementById('selected-text');
 const translationOutput = document.getElementById('translation-output');
+const autoTranslateToggle = document.getElementById('auto-translate-toggle');
 
 // Chat Panel Elements
 const chatModelTitle = document.getElementById('chat-model-title');
@@ -170,6 +171,25 @@ fileInput.addEventListener('change', (e) => {
     reader.onload = (event) => renderPdf(event.target.result);
     reader.readAsArrayBuffer(file);
 });
+
+pdfViewer.addEventListener('mouseup', () => {
+    const selection = window.getSelection().toString().trim();
+    if (!selection) return;
+
+    // Update the original text panel
+    selectedTextContainer.textContent = selection;
+
+    // Check for auto-translate
+    const isAutoTranslateOn = autoTranslateToggle && autoTranslateToggle.checked;
+    const isSidebarOpen = !sidebar.classList.contains('collapsed');
+
+    if (isAutoTranslateOn && isSidebarOpen) {
+        // Ensure the translate tab is active
+        document.querySelector('.tab-button[data-tab="translate-panel"]').click();
+        handleTranslate(selection);
+    }
+});
+
 
 // --- PDF缩放控制器 ---
 let zoomSlider, zoomCurrentLabel, zoomControl, zoomResetBtn;
@@ -492,14 +512,6 @@ function toggleZoomControl(show) {
     }
 }
 
-pdfViewer.addEventListener('mouseup', () => {
-    const selection = window.getSelection().toString().trim();
-    if (selection) {
-        selectedTextContainer.textContent = selection;
-        chatInput.value = `请帮我分析这段内容:"${selection}"`;
-    }
-});
-
 // --- 右键菜单功能 ---
 const contextMenu = document.getElementById('context-menu');
 let currentSelectedText = '';
@@ -796,6 +808,7 @@ function initializeApp() {
     
     loadSelectionColorSettings();
     initializeTranslateTargetLang();
+    initializeAutoTranslateToggle();
 
     const settings = getSettingsFromLocalStorage();
     const model = settings ? settings.aiModels.find(m => m.id === settings.activeChatModel) : null;
@@ -833,6 +846,21 @@ function initializeTranslateTargetLang() {
         translateTargetSelect.addEventListener('change', (e) => {
             const currentSettings = getSettingsFromLocalStorage() || {};
             currentSettings.translateTargetLang = e.target.value;
+            localStorage.setItem('pdfReaderSettings', JSON.stringify(currentSettings));
+        });
+    }
+}
+
+function initializeAutoTranslateToggle() {
+    const settings = getSettingsFromLocalStorage() || {};
+    const autoTranslateEnabled = settings.autoTranslateEnabled || false;
+
+    if (autoTranslateToggle) {
+        autoTranslateToggle.checked = autoTranslateEnabled;
+
+        autoTranslateToggle.addEventListener('change', (e) => {
+            const currentSettings = getSettingsFromLocalStorage() || {};
+            currentSettings.autoTranslateEnabled = e.target.checked;
             localStorage.setItem('pdfReaderSettings', JSON.stringify(currentSettings));
         });
     }

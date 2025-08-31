@@ -1620,3 +1620,17 @@ body.resizing-sidebar * {
     background-color: var(--primary-color);
     color: white;
 }
+
+/* Styles for translation panel controls */
+.translate-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.setting-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}

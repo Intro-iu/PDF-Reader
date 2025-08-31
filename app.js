@@ -14,8 +14,10 @@ const themeIconDark = document.getElementById('theme-icon-dark');
 
 // Translate Panel Elements
 const selectedTextContainer = document.getElementById('selected-text');
+const translationOutput = document.getElementById('translation-output');
 
 // Chat Panel Elements
+const chatModelTitle = document.getElementById('chat-model-title');
 const chatWelcomeView = document.getElementById('chat-welcome-view');
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
@@ -124,12 +126,14 @@ class SidebarResizer {
     
     saveSidebarWidth() {
         const width = this.sidebar.offsetWidth;
-        // 将侧边栏宽度保存到配置系统中
-        this.saveToConfig('sidebarWidth', width);
+        const settings = getSettingsFromLocalStorage() || {};
+        settings.sidebarWidth = width;
+        localStorage.setItem('pdfReaderSettings', JSON.stringify(settings));
     }
     
     loadSidebarWidth() {
-        const savedWidth = this.loadFromConfig('sidebarWidth');
+        const settings = getSettingsFromLocalStorage();
+        const savedWidth = settings ? settings.sidebarWidth : null;
         if (savedWidth) {
             const width = parseInt(savedWidth, 10);
             if (width >= this.minWidth && width <= this.maxWidth) {
@@ -137,30 +141,7 @@ class SidebarResizer {
                 return;
             }
         }
-        // 如果没有保存的宽度或宽度无效，使用默认宽度
         this.setSidebarWidth(this.defaultWidth);
-    }
-    
-    // 保存配置到统一的配置系统
-    saveToConfig(key, value) {
-        try {
-            let config = JSON.parse(localStorage.getItem('pdfReaderSettings') || '{}');
-            config[key] = value;
-            localStorage.setItem('pdfReaderSettings', JSON.stringify(config));
-        } catch (error) {
-            console.error('保存配置失败:', error);
-        }
-    }
-    
-    // 从统一的配置系统加载配置
-    loadFromConfig(key) {
-        try {
-            const config = JSON.parse(localStorage.getItem('pdfReaderSettings') || '{}');
-            return config[key];
-        } catch (error) {
-            console.error('加载配置失败:', error);
-            return null;
-        }
     }
 }
 
@@ -573,39 +554,29 @@ contextMenu.addEventListener('click', (e) => {
     
     switch (action) {
         case 'translate':
-            // 优先确保侧边栏打开，避免布局变化影响选区
             if (sidebar.classList.contains('collapsed')) {
                 sidebar.classList.remove('collapsed');
                 sidebarToggle.classList.remove('collapsed');
                 updateSidebarTogglePosition();
             }
-            // 切换到翻译标签页并填充选中文本
             selectedTextContainer.textContent = savedSelection;
             document.querySelector('.tab-button[data-tab="translate-panel"]').click();
+            handleTranslate(savedSelection);
             break;
             
         case 'chat':
-            // 优先确保侧边栏打开，避免布局变化影响选区
             if (sidebar.classList.contains('collapsed')) {
                 sidebar.classList.remove('collapsed');
                 sidebarToggle.classList.remove('collapsed');
                 updateSidebarTogglePosition();
             }
-            // 切换到AI对话标签页并填充选中文本
             chatInput.value = `请帮我分析这段内容:"${savedSelection}"`;
             document.querySelector('.tab-button[data-tab="chat-panel"]').click();
-            // 延迟聚焦输入框，避免布局变化时的冲突
-            setTimeout(() => {
-                chatInput.focus();
-                chatInput.style.height = 'auto';
-                chatInput.style.height = `${chatInput.scrollHeight}px`;
-            }, 100);
+            setTimeout(() => { chatInput.focus(); chatInput.style.height = 'auto'; chatInput.style.height = `${chatInput.scrollHeight}px`; }, 100);
             break;
             
         case 'copy':
-            // 复制选中文本到剪贴板
             navigator.clipboard.writeText(savedSelection).then(() => {
-                // 可以添加一个简单的提示
                 console.log('文本已复制到剪贴板');
             }).catch(err => {
                 console.error('复制失败:', err);
@@ -629,87 +600,74 @@ function getSettingsFromLocalStorage() {
     return null;
 }
 
+// --- Translation Logic ---
+async function handleTranslate(text) {
+    const settings = getSettingsFromLocalStorage();
+    if (!settings || !settings.activeTranslateModel) {
+        translationOutput.textContent = '请先在设置中选择一个有效的翻译模型。';
+        return;
+    }
+
+    const model = settings.aiModels.find(m => m.id === settings.activeTranslateModel);
+    if (!model) {
+        translationOutput.textContent = '选择的翻译模型无效，请在设置中检查。';
+        return;
+    }
+
+    const targetLangSelect = document.getElementById('translate-target-lang');
+    const targetLang = targetLangSelect.options[targetLangSelect.selectedIndex].text;
+
+    let prompt = (settings.translationPrompt || 'Translate the following text to [TARGET_LANG]:\n\n[SELECTED_TEXT]')
+        .replace('[SELECTED_TEXT]', text)
+        .replace('[TARGET_LANG]', targetLang);
+
+    translationOutput.textContent = '正在翻译中...';
+
+    try {
+        // Translation prompts usually don't need a separate system prompt
+        const translatedText = await getOpenAICompletion(prompt, null, model.apiEndpoint, model.apiKey, model.modelId);
+        translationOutput.textContent = translatedText;
+    } catch (error) {
+        console.error('翻译失败:', error);
+        translationOutput.textContent = `翻译失败: ${error.message}`;
+    }
+}
+
 // --- VSC Copilot-style Chat Logic ---
 async function handleUserChat() {
     const userMessage = chatInput.value.trim();
     if (!userMessage) return;
 
-    // Hide welcome view if it exists
-    const welcomeView = document.getElementById('chat-welcome-view');
-    if (welcomeView) {
-        welcomeView.remove();
-    }
+    const settings = getSettingsFromLocalStorage();
+    const model = settings ? settings.aiModels.find(m => m.id === settings.activeChatModel) : null;
+    const modelName = model ? model.name : 'AI 对话';
 
-    const responseBody = addChatTurn(userMessage);
+    const welcomeView = document.getElementById('chat-welcome-view');
+    if (welcomeView) { welcomeView.remove(); }
+
+    const responseBody = addChatTurn(userMessage, modelName);
     chatInput.value = '';
     chatInput.style.height = 'auto';
     chatSendButton.disabled = true;
 
-    // Show typing indicator
     showTypingIndicator(responseBody);
 
+    if (!settings || !settings.activeChatModel || !model) {
+        hideTypingIndicator(responseBody);
+        responseBody.textContent = '请在设置中选择一个有效的聊天模型。';
+        chatSendButton.disabled = false;
+        return;
+    }
+
     try {
-        const settings = getSettingsFromLocalStorage();
-        if (!settings) {
-            throw new Error('无法加载应用设置。请先访问设置页面进行配置。');
-        }
-
-        const activeModelId = settings.activeChatModel;
-        if (!activeModelId) {
-            throw new Error('请先在设置中选择一个有效的AI对话模型。');
-        }
-
-        const activeModel = settings.aiModels?.find(m => m.id === activeModelId);
-
-        if (!activeModel || !activeModel.apiKey || !activeModel.apiEndpoint) {
-            throw new Error('选择的AI模型配置不完整或无效。请检查设置。');
-        }
-
-        const messages = [];
-        if (settings.chatPrompt) {
-            messages.push({ role: 'system', content: settings.chatPrompt });
-        }
-        messages.push({ role: 'user', content: userMessage });
-
-        const response = await fetch(activeModel.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${activeModel.apiKey}`
-            },
-            body: JSON.stringify({
-                model: activeModel.modelId,
-                messages: messages,
-                stream: false
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error Response:', errorText);
-            try {
-                const errorData = JSON.parse(errorText);
-                throw new Error(`API 请求失败 (${response.status}): ${errorData.error?.message || '未知错误'}`);
-            } catch (e) {
-                 throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
-            }
-        }
-
-        const data = await response.json();
-        const botResponse = data.choices[0]?.message?.content?.trim();
-
-        if (!botResponse) {
-            throw new Error('API返回了空消息或无效格式。');
-        }
-
+        const systemPrompt = settings.chatPrompt || null;
+        const botResponse = await getOpenAICompletion(userMessage, systemPrompt, model.apiEndpoint, model.apiKey, model.modelId);
         hideTypingIndicator(responseBody);
         streamResponse(responseBody, botResponse);
-
     } catch (error) {
-        console.error('AI 对话失败:', error);
         hideTypingIndicator(responseBody);
-        const errorMessage = `抱歉，出错了: ${error.message}`;
-        responseBody.innerHTML = `<p class="error-message" style="color: #ef4444;">${escapeHtml(errorMessage)}</p>`;
+        console.error('API 请求失败:', error);
+        responseBody.textContent = `API请求失败: ${error.message}`;
         chatSendButton.disabled = false;
     }
 }
@@ -741,36 +699,30 @@ chatInput.addEventListener('input', () => {
 newChatButton.addEventListener('click', startNewChat);
 
 function startNewChat() {
-    // Clear all chat messages
+    const settings = getSettingsFromLocalStorage();
+    const model = settings ? settings.aiModels.find(m => m.id === settings.activeChatModel) : null;
+    const modelName = model ? model.name : 'AI 对话';
+
     chatMessages.innerHTML = '';
+    chatMessages.appendChild(createWelcomeView(modelName));
+    updateChatUI(modelName);
     
-    // Show welcome view again
-    chatMessages.appendChild(createWelcomeView());
-    
-    // Clear input
     chatInput.value = '';
     chatInput.style.height = 'auto';
-    
-    // Re-enable send button
     chatSendButton.disabled = false;
-    
-    // Focus on input
     chatInput.focus();
     
-    // Add a subtle animation
     chatMessages.style.opacity = '0';
-    setTimeout(() => {
-        chatMessages.style.opacity = '1';
-    }, 100);
+    setTimeout(() => { chatMessages.style.opacity = '1'; }, 100);
 }
 
-function createWelcomeView() {
+function createWelcomeView(modelName = 'AI 对话') {
     const welcomeView = document.createElement('div');
     welcomeView.id = 'chat-welcome-view';
     welcomeView.innerHTML = `
         <div class="welcome-icon">🤖</div>
-        <h3>GitHub Copilot</h3>
-        <p class="welcome-subtitle">我是您的AI编程助手，可以帮您分析文档内容、回答问题</p>
+        <h3>${escapeHtml(modelName)}</h3>
+        <p class="welcome-subtitle">我是您的AI助手，可以帮您分析文档内容、回答问题</p>
         <div class="welcome-actions">
             <div class="welcome-tip">💡 选择文档中的文本即可快速提问</div>
         </div>
@@ -778,28 +730,20 @@ function createWelcomeView() {
     return welcomeView;
 }
 
-function addChatTurn(userMessage) {
+function addChatTurn(userMessage, modelName = 'AI 对话') {
     const turnElement = document.createElement('div');
     turnElement.className = 'chat-turn';
 
-    // User Prompt
     const promptHtml = `
         <div class="prompt-message">
-            <div class="message-header">
-                <div class="avatar-icon user-icon">👤</div>
-                <span class="author-name">You</span>
-            </div>
+            <div class="message-header"><div class="avatar-icon user-icon">👤</div><span class="author-name">You</span></div>
             <div class="message-body"><p>${escapeHtml(userMessage)}</p></div>
         </div>
     `;
 
-    // Bot Response Shell
     const responseHtml = `
         <div class="response-message">
-            <div class="message-header">
-                <div class="avatar-icon bot-icon">🤖</div>
-                <span class="author-name">GitHub Copilot</span>
-            </div>
+            <div class="message-header"><div class="avatar-icon bot-icon">🤖</div><span class="author-name">${escapeHtml(modelName)}</span></div>
             <div class="message-body"></div>
         </div>
     `;
@@ -808,7 +752,6 @@ function addChatTurn(userMessage) {
     chatMessages.appendChild(turnElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    // Return the element where the bot's response will be streamed
     return turnElement.querySelector('.response-message .message-body');
 }
 
@@ -836,185 +779,90 @@ function streamResponse(targetElement, fullMessage) {
     }, 25);
 }
 
+function updateChatUI(modelName = 'AI 对话') {
+    if (chatModelTitle) {
+        chatModelTitle.textContent = modelName;
+    }
+    const welcomeView = document.getElementById('chat-welcome-view');
+    if (welcomeView) {
+        welcomeView.querySelector('h3').textContent = modelName;
+    }
+}
+
 // --- Initialize App ---
 function initializeApp() {
-    // Load saved theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
     
-    // Load selection color settings
     loadSelectionColorSettings();
-    
-    // Initialize translate target language
     initializeTranslateTargetLang();
 
-    // Add event listener for translate button
-    const translateButton = document.getElementById('translate-button');
-    if (translateButton) {
-        translateButton.addEventListener('click', handleTranslate);
+    const settings = getSettingsFromLocalStorage();
+    const model = settings ? settings.aiModels.find(m => m.id === settings.activeChatModel) : null;
+    const modelName = model ? model.name : 'AI 对话';
+
+    updateChatUI(modelName);
+
+    if (chatMessages.children.length === 0) {
+        chatMessages.appendChild(createWelcomeView(modelName));
     }
 
-    // Ensure welcome view is shown on page load
-    if (chatMessages.children.length === 0) {
-        chatMessages.appendChild(createWelcomeView());
-    }
+    window.sidebarResizer = new SidebarResizer();
+    initializeZoomControl();
 }
 
 // 加载文本选择颜色设置
 function loadSelectionColorSettings() {
-    try {
-        // 从localStorage读取设置（临时方案）
-        const savedSettings = localStorage.getItem('pdfReaderSettings');
-        if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            if (settings.textSelectionColor) {
-                document.documentElement.style.setProperty('--text-selection-color', settings.textSelectionColor);
-            }
-            if (settings.selectionOpacity !== undefined) {
-                const opacityValue = settings.selectionOpacity / 100;
-                document.documentElement.style.setProperty('--text-selection-opacity', opacityValue);
-            }
-        }
-    } catch (error) {
-        console.warn('加载选择颜色设置失败:', error);
-    }
-}
+    const settings = getSettingsFromLocalStorage();
+    const textSelectionColor = settings ? settings.textSelectionColor : '#007bff';
+    const selectionOpacity = settings ? settings.selectionOpacity : 30;
 
-// --- Translation Logic ---
-async function handleTranslate() {
-    const textToTranslate = selectedTextContainer.textContent;
-    const targetLangSelect = document.getElementById('translate-target-lang');
-    const targetLang = targetLangSelect.options[targetLangSelect.selectedIndex].text; // Get language name
-    const outputContainer = document.getElementById('translation-output');
-
-    if (!textToTranslate || textToTranslate === '在这里显示划选的文本') {
-        outputContainer.innerHTML = '<p class="error-message">没有需要翻译的文本。</p>';
-        return;
-    }
-
-    outputContainer.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
-
-    try {
-        const settings = getSettingsFromLocalStorage();
-        if (!settings) {
-            throw new Error('无法加载应用设置。');
-        }
-
-        const activeModelId = settings.activeTranslateModel;
-        if (!activeModelId) {
-            throw new Error('请先在设置中选择一个有效的AI翻译模型。');
-        }
-
-        const activeModel = settings.aiModels?.find(m => m.id === activeModelId);
-        if (!activeModel || !activeModel.apiKey || !activeModel.apiEndpoint) {
-            throw new Error('选择的AI翻译模型配置不完整或无效。');
-        }
-
-        let prompt = settings.translationPrompt || 'Please translate the following text to [TARGET_LANG]:\n\n[SELECTED_TEXT]';
-        prompt = prompt.replace('[SELECTED_TEXT]', textToTranslate).replace('[TARGET_LANG]', targetLang);
-
-        const messages = [{ role: 'system', content: prompt }];
-
-        const response = await fetch(activeModel.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${activeModel.apiKey}`
-            },
-            body: JSON.stringify({
-                model: activeModel.modelId,
-                messages: messages,
-                stream: false
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
-        }
-
-        const data = await response.json();
-        const translatedText = data.choices[0]?.message?.content?.trim();
-
-        if (!translatedText) {
-            throw new Error('API返回了空消息或无效格式。');
-        }
-
-        outputContainer.innerHTML = `<p>${escapeHtml(translatedText)}</p>`;
-
-    } catch (error) {
-        console.error('翻译失败:', error);
-        outputContainer.innerHTML = `<p class="error-message" style="color: #ef4444;">翻译失败: ${error.message}</p>`;
-    }
+    document.documentElement.style.setProperty('--text-selection-color', textSelectionColor);
+    const opacityValue = selectionOpacity / 100;
+    document.documentElement.style.setProperty('--text-selection-opacity', opacityValue);
 }
 
 // --- Translation Target Language ---
 function initializeTranslateTargetLang() {
-    try {
-        const savedSettings = JSON.parse(localStorage.getItem('pdfReaderSettings') || '{}');
-        const targetLang = savedSettings.translateTargetLang || 'zh';
-        
-        const translateTargetSelect = document.getElementById('translate-target-lang');
-        if (translateTargetSelect) {
-            translateTargetSelect.value = targetLang;
-            
-            // 添加事件监听器
-            translateTargetSelect.addEventListener('change', (e) => {
-                saveTranslateTargetLang(e.target.value);
-            });
-        }
-    } catch (error) {
-        console.error('初始化翻译目标语言失败:', error);
+    const settings = getSettingsFromLocalStorage();
+    const targetLang = settings ? settings.translateTargetLang : 'zh';
+    
+    const translateTargetSelect = document.getElementById('translate-target-lang');
+    if (translateTargetSelect) {
+        translateTargetSelect.value = targetLang;
+        translateTargetSelect.addEventListener('change', (e) => {
+            const currentSettings = getSettingsFromLocalStorage() || {};
+            currentSettings.translateTargetLang = e.target.value;
+            localStorage.setItem('pdfReaderSettings', JSON.stringify(currentSettings));
+        });
     }
 }
 
-function saveTranslateTargetLang(targetLang) {
-    try {
-        const savedSettings = JSON.parse(localStorage.getItem('pdfReaderSettings') || '{}');
-        savedSettings.translateTargetLang = targetLang;
-        localStorage.setItem('pdfReaderSettings', JSON.stringify(savedSettings));
-    } catch (error) {
-        console.error('保存翻译目标语言失败:', error);
-    }
-}
-
-// Initialize app when page loads
 document.addEventListener('DOMContentLoaded', initializeApp);
-
-// 初始化侧边栏调整器和缩放控制器
-document.addEventListener('DOMContentLoaded', () => {
-    window.sidebarResizer = new SidebarResizer();
-    initializeZoomControl(); // 初始化缩放控制器
-});
 
 // --- Initial PDF Rendering ---
 async function renderPdf(data) {
-    currentPdfData = data; // 保存PDF数据用于缩放
-    toggleZoomControl(true); // 显示缩放控制器
+    currentPdfData = data;
+    toggleZoomControl(true);
 
     try {
-        // 加载文档以计算尺寸
         currentPdf = await pdfjsLib.getDocument(data).promise;
         const page = await currentPdf.getPage(1);
         const viewport = page.getViewport({ scale: 1.0 });
         
-        // 计算适应宽度的缩放比例（减去一点边距给滚动条）
         const containerWidth = pdfViewer.clientWidth;
         const fitToWidthScale = (containerWidth - 20) / viewport.width;
-        
         currentScale = fitToWidthScale;
 
-        // 更新缩放UI
         if (zoomSlider && zoomCurrentLabel) {
             const zoomPercentage = Math.round(currentScale * 100);
-            // 确保缩放比例在允许范围内
             const minZoom = parseInt(zoomSlider.min);
             const maxZoom = parseInt(zoomSlider.max);
             const clampedPercentage = Math.max(minZoom, Math.min(maxZoom, zoomPercentage));
             
             zoomSlider.value = clampedPercentage;
             zoomCurrentLabel.textContent = `${clampedPercentage}%`;
-            currentScale = clampedPercentage / 100; // Use the clamped scale
+            currentScale = clampedPercentage / 100;
         }
         
         await renderPdfWithScale(data, currentScale);
@@ -1026,7 +874,8 @@ async function renderPdf(data) {
     }
 }
 
-// 创建单个页面占位符的辅助函数
+// ... (The rest of the PDF rendering functions remain the same) ...
+
 async function createPageContainer(pageNum, scale) {
     const page = await currentPdf.getPage(pageNum);
     const viewport = page.getViewport({ scale });
@@ -1061,32 +910,25 @@ async function renderPdfWithScale(data, scale) {
     }
     isRendering = true;
     
-    // 清除CSS缩放预览效果
     clearInstantZoom();
     
     pdfViewer.innerHTML = '<p>正在加载 PDF...</p>';
 
     try {
-        // 如果PDF文档对象不存在或数据改变，则重新加载
         if (!currentPdf || currentPdfData !== data) {
             currentPdf = await pdfjsLib.getDocument(data).promise;
             currentPdfData = data;
         }
         
-        pdfViewer.innerHTML = ''; // 清空容器
+        pdfViewer.innerHTML = '';
         const numPages = currentPdf.numPages;
-        console.log(`开始优化渲染: ${numPages}页, 缩放比例: ${scale}`);
 
-        // --- 优化：快速首屏渲染 ---
-
-        // 1. 立即创建并渲染第一页
         if (numPages > 0) {
             const firstPageContainer = await createPageContainer(1, scale);
             pdfViewer.appendChild(firstPageContainer);
-            await renderSinglePage(firstPageContainer); // 直接调用单页渲染
+            await renderSinglePage(firstPageContainer);
         }
 
-        // 2. 异步创建剩余页面的占位符
         if (numPages > 1) {
             setTimeout(async () => {
                 const fragment = document.createDocumentFragment();
@@ -1095,12 +937,9 @@ async function renderPdfWithScale(data, scale) {
                     fragment.appendChild(pageContainer);
                 }
                 pdfViewer.appendChild(fragment);
-                console.log('剩余页面占位符创建完成');
-            }, 150); // 延迟以确保首屏渲染流畅
+            }, 150);
         }
         
-        // -------------------------
-
         toggleZoomControl(true);
         
     } catch (error) {
@@ -1112,12 +951,10 @@ async function renderPdfWithScale(data, scale) {
     }
 }
 
-// 渲染当前可见区域的页面
 async function renderVisiblePages() {
     const pageContainers = Array.from(pdfViewer.querySelectorAll('.pdf-page-container'));
     const visibleContainers = [];
     
-    // 找出可见或接近可见的页面
     pageContainers.forEach(container => {
         if (isElementInViewport(container, 800) && container.dataset.rendered === 'false') {
             visibleContainers.push(container);
@@ -1125,136 +962,49 @@ async function renderVisiblePages() {
     });
     
     if (visibleContainers.length > 0) {
-        console.log(`发现 ${visibleContainers.length} 个页面需要渲染`);
-    }
-    
-    // 批量渲染可见页面（每次最多3页，避免卡顿）
-    const batchSize = 3;
-    for (let i = 0; i < visibleContainers.length; i += batchSize) {
-        const batch = visibleContainers.slice(i, i + batchSize);
-        await Promise.all(batch.map(container => renderSinglePage(container)));
-        
-        // 给UI一些时间更新
-        await new Promise(resolve => setTimeout(resolve, 10));
+        const batchSize = 3;
+        for (let i = 0; i < visibleContainers.length; i += batchSize) {
+            const batch = visibleContainers.slice(i, i + batchSize);
+            await Promise.all(batch.map(container => renderSinglePage(container)));
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
     }
 }
 
-// 渲染单个页面
 async function renderSinglePage(pageContainer) {
     const pageNum = parseInt(pageContainer.dataset.pageNum);
-    
-    if (pageContainer.dataset.rendered === 'true') {
-        return; // 已经渲染过了
-    }
+    if (pageContainer.dataset.rendered === 'true') return;
     
     try {
         const page = await currentPdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: currentScale });
         
-        // 更新容器尺寸（可能因为缩放改变了）
         pageContainer.style.width = `${viewport.width}px`;
         pageContainer.style.height = `${viewport.height}px`;
         
-        // 移除占位符
         const placeholder = pageContainer.querySelector('.page-placeholder');
-        if (placeholder) {
-            placeholder.remove();
-        }
+        if (placeholder) placeholder.remove();
         
-        // 创建canvas
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         
-        // 创建文本层
         const textLayerDiv = document.createElement('div');
         textLayerDiv.className = 'textLayer';
         
-        // 添加到容器
         pageContainer.append(canvas, textLayerDiv);
         
-        // 渲染页面内容
-        await page.render({
-            canvasContext: canvas.getContext('2d'), 
-            viewport 
-        }).promise;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
         
-        // 渲染文本层
-        try {
-            const textContent = await page.getTextContent();
-            pdfjsLib.renderTextLayer({
-                textContent,
-                container: textLayerDiv,
-                viewport,
-                textDivs: []
-            });
-        } catch (textError) {
-            console.warn(`页面 ${pageNum} 文本层渲染失败:`, textError);
-        }
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({ textContent, container: textLayerDiv, viewport, textDivs: [] });
         
-        // 标记为已渲染
         pageContainer.dataset.rendered = 'true';
         pageContainer.classList.add('rendered');
         
-        console.log(`页面 ${pageNum} 渲染完成`);
-        
     } catch (error) {
         console.error(`页面 ${pageNum} 渲染失败:`, error);
-        
-        // 显示错误信息
-        pageContainer.innerHTML = `
-            <div class="page-error">
-                <div>⚠️ 页面 ${pageNum} 加载失败</div>
-                <div style="font-size: 12px; color: #666;">点击重试</div>
-            </div>
-        `;
-        
-        // 添加重试功能
-        pageContainer.addEventListener('click', () => {
-            pageContainer.dataset.rendered = 'false';
-            renderSinglePage(pageContainer);
-        }, { once: true });
+        pageContainer.innerHTML = `<div class="page-error"><div>⚠️ 页面 ${pageNum} 加载失败</div><div style="font-size: 12px; color: #666;">点击重试</div></div>`;
+        pageContainer.addEventListener('click', () => { pageContainer.dataset.rendered = 'false'; renderSinglePage(pageContainer); }, { once: true });
     }
-}
-
-// 创建所有页面的容器结构
-async function createAllPageContainers(scale) {
-    pdfViewer.innerHTML = '<p>正在初始化页面...</p>';
-    
-    const numPages = currentPdf.numPages;
-    const containers = [];
-    
-    // 快速创建所有页面容器
-    for (let i = 1; i <= numPages; i++) {
-        const page = await currentPdf.getPage(i);
-        const viewport = page.getViewport({ scale });
-        
-        const pageContainer = document.createElement('div');
-        pageContainer.className = 'pdf-page-container';
-        pageContainer.style.width = `${viewport.width}px`;
-        pageContainer.style.height = `${viewport.height}px`;
-        pageContainer.dataset.pageNum = i.toString();
-        pageContainer.dataset.rendered = 'false';
-        
-        // 创建canvas占位
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        // 创建文本层占位
-        const textLayerDiv = document.createElement('div');
-        textLayerDiv.className = 'textLayer';
-        
-        // 添加加载提示
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'page-loading-overlay';
-        loadingOverlay.innerHTML = `<p>第 ${i} 页</p>`;
-        
-        pageContainer.append(canvas, textLayerDiv, loadingOverlay);
-        containers.push(pageContainer);
-    }
-    
-    // 清空并一次性添加所有容器
-    pdfViewer.innerHTML = '';
-    containers.forEach(container => pdfViewer.appendChild(container));
 }

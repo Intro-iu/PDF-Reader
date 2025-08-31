@@ -1,3 +1,4 @@
+
 :root {
     --primary-color: #007acc;
     --primary-hover-color: #005a9e;
@@ -1276,7 +1277,8 @@ body.resizing-sidebar * {
 .setting-group input[type="text"],
 .setting-group input[type="url"],
 .setting-group input[type="password"],
-.setting-group select {
+.setting-group select,
+.setting-group textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--input-border);
@@ -1291,7 +1293,8 @@ body.resizing-sidebar * {
 .setting-group input[type="text"]:focus,
 .setting-group input[type="url"]:focus,
 .setting-group input[type="password"]:focus,
-.setting-group select:focus {
+.setting-group select:focus,
+.setting-group textarea:focus {
     outline: none;
     border-color: var(--input-focus-border);
     box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);

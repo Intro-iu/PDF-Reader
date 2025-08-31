@@ -92,10 +92,13 @@
                                 <option value="es">西班牙语</option>
                             </select>
                         </div>
+                        <button id="translate-button" class="btn-primary" style="margin-top: 10px; width: 100%;">翻译</button>
                         <h4>原文</h4>
                         <pre id="selected-text">在这里显示划选的文本</pre>
                         <h4>译文</h4>
-                        <div id="translation-output">翻译结果将显示在这里...</div>
+                        <div id="translation-output" class="translation-output-container">
+                            <div class="placeholder">翻译结果将显示在这里...</div>
+                        </div>
                     </div>
                     <!-- VSC Copilot-style Layout -->
                     <div id="chat-panel" class="tab-panel active">

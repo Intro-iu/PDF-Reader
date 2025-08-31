@@ -6,6 +6,8 @@ class SettingsManager {
             activeChatModel: '',
             activeTranslateModel: '',
             translateTargetLang: 'zh',
+            chatPrompt: 'You are a professional AI assistant, please provide concise and accurate answers to user questions.',
+            translationPrompt: 'Please translate the following text to [TARGET_LANG]:\n\n[SELECTED_TEXT]',
             autoSaveSettings: true,
             enableSelectionTranslation: true,
             textSelectionColor: '#007bff',
@@ -95,6 +97,10 @@ class SettingsManager {
         document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
         document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
         
+        // 填充提示词设置
+        document.getElementById('chat-prompt').value = this.settings.chatPrompt;
+        document.getElementById('translation-prompt').value = this.settings.translationPrompt;
+
         // 初始化颜色选择器
         const colorPicker = document.getElementById('text-selection-color');
         const opacitySlider = document.getElementById('selection-opacity');
@@ -377,6 +383,8 @@ class SettingsManager {
         this.settings.enableSelectionTranslation = document.getElementById('enable-selection-translation').checked;
         this.settings.activeChatModel = document.getElementById('active-chat-model').value;
         this.settings.activeTranslateModel = document.getElementById('active-translate-model').value;
+        this.settings.chatPrompt = document.getElementById('chat-prompt').value;
+        this.settings.translationPrompt = document.getElementById('translation-prompt').value;
         
         // 获取颜色选择器的值
         const colorPicker = document.getElementById('text-selection-color');

@@ -665,6 +665,12 @@ async function handleUserChat() {
             throw new Error('选择的AI模型配置不完整或无效。请检查设置。');
         }
 
+        const messages = [];
+        if (settings.chatPrompt) {
+            messages.push({ role: 'system', content: settings.chatPrompt });
+        }
+        messages.push({ role: 'user', content: userMessage });
+
         const response = await fetch(activeModel.apiEndpoint, {
             method: 'POST',
             headers: {
@@ -673,7 +679,7 @@ async function handleUserChat() {
             },
             body: JSON.stringify({
                 model: activeModel.modelId,
-                messages: [{ role: 'user', content: userMessage }],
+                messages: messages,
                 stream: false
             })
         });
@@ -842,6 +848,12 @@ function initializeApp() {
     // Initialize translate target language
     initializeTranslateTargetLang();
 
+    // Add event listener for translate button
+    const translateButton = document.getElementById('translate-button');
+    if (translateButton) {
+        translateButton.addEventListener('click', handleTranslate);
+    }
+
     // Ensure welcome view is shown on page load
     if (chatMessages.children.length === 0) {
         chatMessages.appendChild(createWelcomeView());
@@ -865,6 +877,74 @@ function loadSelectionColorSettings() {
         }
     } catch (error) {
         console.warn('加载选择颜色设置失败:', error);
+    }
+}
+
+// --- Translation Logic ---
+async function handleTranslate() {
+    const textToTranslate = selectedTextContainer.textContent;
+    const targetLangSelect = document.getElementById('translate-target-lang');
+    const targetLang = targetLangSelect.options[targetLangSelect.selectedIndex].text; // Get language name
+    const outputContainer = document.getElementById('translation-output');
+
+    if (!textToTranslate || textToTranslate === '在这里显示划选的文本') {
+        outputContainer.innerHTML = '<p class="error-message">没有需要翻译的文本。</p>';
+        return;
+    }
+
+    outputContainer.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+
+    try {
+        const settings = getSettingsFromLocalStorage();
+        if (!settings) {
+            throw new Error('无法加载应用设置。');
+        }
+
+        const activeModelId = settings.activeTranslateModel;
+        if (!activeModelId) {
+            throw new Error('请先在设置中选择一个有效的AI翻译模型。');
+        }
+
+        const activeModel = settings.aiModels?.find(m => m.id === activeModelId);
+        if (!activeModel || !activeModel.apiKey || !activeModel.apiEndpoint) {
+            throw new Error('选择的AI翻译模型配置不完整或无效。');
+        }
+
+        let prompt = settings.translationPrompt || 'Please translate the following text to [TARGET_LANG]:\n\n[SELECTED_TEXT]';
+        prompt = prompt.replace('[SELECTED_TEXT]', textToTranslate).replace('[TARGET_LANG]', targetLang);
+
+        const messages = [{ role: 'system', content: prompt }];
+
+        const response = await fetch(activeModel.apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${activeModel.apiKey}`
+            },
+            body: JSON.stringify({
+                model: activeModel.modelId,
+                messages: messages,
+                stream: false
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        const translatedText = data.choices[0]?.message?.content?.trim();
+
+        if (!translatedText) {
+            throw new Error('API返回了空消息或无效格式。');
+        }
+
+        outputContainer.innerHTML = `<p>${escapeHtml(translatedText)}</p>`;
+
+    } catch (error) {
+        console.error('翻译失败:', error);
+        outputContainer.innerHTML = `<p class="error-message" style="color: #ef4444;">翻译失败: ${error.message}</p>`;
     }
 }
 

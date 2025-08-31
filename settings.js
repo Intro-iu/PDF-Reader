@@ -47,10 +47,12 @@ class SettingsManager {
     // 保存到配置文件的方法
     async saveToConfigFile() {
         try {
-            // 创建配置文件内容
+            // 创建配置文件内容，确保与导入逻辑兼容
             const configData = {
-                ...this.settings,
-                lastModified: new Date().toISOString()
+                appName: 'PDF-Reader',
+                version: '1.0.0',
+                lastModified: new Date().toISOString(),
+                settings: { ...this.settings }
             };
             
             // 生成并下载配置文件

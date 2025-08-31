@@ -616,8 +616,21 @@ contextMenu.addEventListener('click', (e) => {
     hideContextMenu();
 });
 
+// --- Settings Logic for Main Page ---
+function getSettingsFromLocalStorage() {
+    try {
+        const savedSettings = localStorage.getItem('pdfReaderSettings');
+        if (savedSettings) {
+            return JSON.parse(savedSettings);
+        }
+    } catch (error) {
+        console.error('从 localStorage 加载设置失败:', error);
+    }
+    return null;
+}
+
 // --- VSC Copilot-style Chat Logic ---
-function handleUserChat() {
+async function handleUserChat() {
     const userMessage = chatInput.value.trim();
     if (!userMessage) return;
 
@@ -635,20 +648,64 @@ function handleUserChat() {
     // Show typing indicator
     showTypingIndicator(responseBody);
 
-    setTimeout(() => {
-        hideTypingIndicator(responseBody);
-        const botResponse = generateCopilotResponse(userMessage);
-        streamResponse(responseBody, botResponse);
-    }, Math.random() * 1000 + 800); // Random delay between 800ms-1800ms
-}
+    try {
+        const settings = getSettingsFromLocalStorage();
+        if (!settings) {
+            throw new Error('无法加载应用设置。请先访问设置页面进行配置。');
+        }
 
-function generateCopilotResponse(userMessage) {
-    const responses = [
-        "基于您提供的文档内容，我可以为您分析以下几个要点：\n\n1. 这段内容的主要概念和核心思想\n2. 相关的技术细节或理论背景\n3. 可能的应用场景或实际意义\n\n需要我详细解释其中的某个方面吗？",
-        "我理解您想了解这部分内容。让我来帮您梳理一下：\n\n这段文字主要讨论了...\n\n从技术角度来看，这涉及到...\n\n如果您有更具体的问题，请随时告诉我！",
-        "这是一个很好的问题！根据文档内容，我可以为您提供以下见解：\n\n• 核心概念解析\n• 实际应用价值\n• 相关技术要点\n\n您希望我深入探讨哪个方面呢？"
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+        const activeModelId = settings.activeChatModel;
+        if (!activeModelId) {
+            throw new Error('请先在设置中选择一个有效的AI对话模型。');
+        }
+
+        const activeModel = settings.aiModels?.find(m => m.id === activeModelId);
+
+        if (!activeModel || !activeModel.apiKey || !activeModel.apiEndpoint) {
+            throw new Error('选择的AI模型配置不完整或无效。请检查设置。');
+        }
+
+        const response = await fetch(activeModel.apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${activeModel.apiKey}`
+            },
+            body: JSON.stringify({
+                model: activeModel.modelId,
+                messages: [{ role: 'user', content: userMessage }],
+                stream: false
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            try {
+                const errorData = JSON.parse(errorText);
+                throw new Error(`API 请求失败 (${response.status}): ${errorData.error?.message || '未知错误'}`);
+            } catch (e) {
+                 throw new Error(`API 请求失败 (${response.status}): ${errorText}`);
+            }
+        }
+
+        const data = await response.json();
+        const botResponse = data.choices[0]?.message?.content?.trim();
+
+        if (!botResponse) {
+            throw new Error('API返回了空消息或无效格式。');
+        }
+
+        hideTypingIndicator(responseBody);
+        streamResponse(responseBody, botResponse);
+
+    } catch (error) {
+        console.error('AI 对话失败:', error);
+        hideTypingIndicator(responseBody);
+        const errorMessage = `抱歉，出错了: ${error.message}`;
+        responseBody.innerHTML = `<p class="error-message" style="color: #ef4444;">${escapeHtml(errorMessage)}</p>`;
+        chatSendButton.disabled = false;
+    }
 }
 
 function showTypingIndicator(targetElement) {

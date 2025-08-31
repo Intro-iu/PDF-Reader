@@ -45,6 +45,36 @@
                                 </svg>
                                 添加模型
                             </button>
+                            <!-- 模型弹窗 -->
+                            <div id="ai-model-modal" class="modal" style="display:none;">
+                                <div class="modal-content">
+                                    <span class="close" id="close-ai-model-modal">&times;</span>
+                                    <h3>添加AI模型</h3>
+                                    <form id="ai-model-form">
+                                        <div class="form-group">
+                                            <label for="modal-model-name">模型名称<span class="required-star">*</span></label>
+                                            <input type="text" id="modal-model-name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="modal-model-id">模型标识<span class="required-star">*</span></label>
+                                            <input type="text" id="modal-model-id" required placeholder="如: gpt-3.5-turbo">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="modal-api-endpoint">API端点<span class="required-star">*</span></label>
+                                            <input type="url" id="modal-api-endpoint" required placeholder="https://api.example.com">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="modal-api-key">API密钥<span class="required-star">*</span></label>
+                                            <input type="password" id="modal-api-key" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label><input type="checkbox" id="modal-supports-chat" checked> 支持对话</label>
+                                            <label><input type="checkbox" id="modal-supports-translation" checked> 支持翻译</label>
+                                        </div>
+                                        <button type="submit" id="modal-confirm-btn" class="btn-confirm" disabled>确认添加</button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                         <div id="ai-models-list">
                             <!-- AI模型配置项将在这里动态生成 -->

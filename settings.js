@@ -198,7 +198,47 @@ class SettingsManager {
     
     bindSettingsEvents() {
         document.getElementById('back-button').addEventListener('click', () => { window.location.href = 'index.html'; });
-        document.getElementById('add-ai-model').addEventListener('click', () => this.addAiModel());
+        // 弹窗相关事件
+        const modal = document.getElementById('ai-model-modal');
+        const openBtn = document.getElementById('add-ai-model');
+        const closeBtn = document.getElementById('close-ai-model-modal');
+        const form = document.getElementById('ai-model-form');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        // 打开弹窗
+        openBtn.addEventListener('click', () => {
+            modal.style.display = 'block';
+            form.reset();
+            confirmBtn.disabled = true;
+        });
+        // 关闭弹窗
+        closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+        window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+        // 表单校验
+        form.addEventListener('input', () => {
+            const name = document.getElementById('modal-model-name').value.trim();
+            const modelId = document.getElementById('modal-model-id').value.trim();
+            const endpoint = document.getElementById('modal-api-endpoint').value.trim();
+            const apiKey = document.getElementById('modal-api-key').value.trim();
+            confirmBtn.disabled = !(name && modelId && endpoint && apiKey);
+        });
+        // 确认添加
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newModel = {
+                id: this.generateModelId(),
+                name: document.getElementById('modal-model-name').value.trim(),
+                modelId: document.getElementById('modal-model-id').value.trim(),
+                apiEndpoint: document.getElementById('modal-api-endpoint').value.trim(),
+                apiKey: document.getElementById('modal-api-key').value.trim(),
+                supportsChat: document.getElementById('modal-supports-chat').checked,
+                supportsTranslation: document.getElementById('modal-supports-translation').checked
+            };
+            if (!this.settings.aiModels) this.settings.aiModels = [];
+            this.settings.aiModels.push(newModel);
+            this.renderAiModelsList();
+            this.updateModelSelectors();
+            modal.style.display = 'none';
+        });
         document.getElementById('active-chat-model').addEventListener('change', (e) => this.updateSetting('activeChatModel', e.target.value));
         document.getElementById('active-translate-model').addEventListener('change', (e) => this.updateSetting('activeTranslateModel', e.target.value));
         document.getElementById('settings-save').addEventListener('click', () => this.collectAndSaveSettings(true));

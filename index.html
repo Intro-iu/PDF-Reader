@@ -7,6 +7,12 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.css">
     <link rel="stylesheet" href="style.css">
+    <script type="module">
+        // Tauri API 只在 Tauri 环境中可用
+        if (window.__TAURI__) {
+            window.tauriAPI = window.__TAURI__;
+        }
+    </script>
 </head>
 <body>
     <div id="app-container">
@@ -174,8 +180,13 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="api.js"></script>
-    <script src="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" 
+            onerror="console.error('PDF.js 加载失败')"></script>
+    <script src="tauri-enhancer.js" 
+            onerror="console.log('Tauri enhancer not loaded (expected in web environment)')"></script>
+    <script src="api.js" 
+            onerror="console.error('API.js 加载失败')"></script>
+    <script src="app.js" 
+            onerror="console.error('App.js 加载失败')"></script>
 </body>
 </html>

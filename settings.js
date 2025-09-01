@@ -81,10 +81,15 @@ class SettingsManager {
     }
     
     initializeSettingsUI() {
-        document.getElementById('auto-save-settings').checked = this.settings.autoSaveSettings;
-        document.getElementById('enable-selection-translation').checked = this.settings.enableSelectionTranslation;
-        document.getElementById('chat-prompt').value = this.settings.chatPrompt || '';
-        document.getElementById('translation-prompt').value = this.settings.translationPrompt || '';
+        const autoSaveSettings = document.getElementById('auto-save-settings');
+        const enableSelectionTranslation = document.getElementById('enable-selection-translation');
+        const chatPrompt = document.getElementById('chat-prompt');
+        const translationPrompt = document.getElementById('translation-prompt');
+        
+        if (autoSaveSettings) autoSaveSettings.checked = this.settings.autoSaveSettings;
+        if (enableSelectionTranslation) enableSelectionTranslation.checked = this.settings.enableSelectionTranslation;
+        if (chatPrompt) chatPrompt.value = this.settings.chatPrompt || '';
+        if (translationPrompt) translationPrompt.value = this.settings.translationPrompt || '';
 
         const colorPicker = document.getElementById('text-selection-color');
         const opacitySlider = document.getElementById('selection-opacity');
@@ -197,22 +202,35 @@ class SettingsManager {
     }
     
     bindSettingsEvents() {
-        document.getElementById('back-button').addEventListener('click', () => { window.location.href = 'index.html'; });
+        // 返回按钮
+        const backButton = document.getElementById('back-button');
+        if (backButton) {
+            backButton.addEventListener('click', () => { window.location.href = 'index.html'; });
+        }
+        
         // 弹窗相关事件
         const modal = document.getElementById('ai-model-modal');
         const openBtn = document.getElementById('add-ai-model');
         const closeBtn = document.getElementById('close-ai-model-modal');
         const form = document.getElementById('ai-model-form');
         const confirmBtn = document.getElementById('modal-confirm-btn');
+        
+        if (!modal || !openBtn || !closeBtn || !form || !confirmBtn) {
+            console.error('设置页面的必要元素未找到');
+            return;
+        }
+        
         // 打开弹窗
         openBtn.addEventListener('click', () => {
             modal.style.display = 'block';
             form.reset();
             confirmBtn.disabled = true;
         });
+        
         // 关闭弹窗
         closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
         window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+        
         // 表单校验
         form.addEventListener('input', () => {
             const name = document.getElementById('modal-model-name').value.trim();
@@ -221,6 +239,7 @@ class SettingsManager {
             const apiKey = document.getElementById('modal-api-key').value.trim();
             confirmBtn.disabled = !(name && modelId && endpoint && apiKey);
         });
+        
         // 确认添加
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -373,6 +392,9 @@ function initializeTheme() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initializeTheme();
-    window.settingsManager = new SettingsManager();
+    // 只在设置页面初始化主题和设置管理器
+    if (document.getElementById('settings-content')) {
+        initializeTheme();
+        window.settingsManager = new SettingsManager();
+    }
 });

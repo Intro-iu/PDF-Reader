@@ -1,5 +1,5 @@
-## TODO
+# Vue 3 + TypeScript + Vite
 
-- 侧边栏展开时自动调整主内容区宽度，避免被遮挡；收起时恢复宽度。右键菜单展开侧边栏和页面加载时也应该自动调整。
-- 修改左侧工具栏逻辑，删除重置按钮，将重置功能合并到原有按钮上。
-- 使用 Electron 或者 Tauri 将项目打包为应用。
+This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+
+Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).

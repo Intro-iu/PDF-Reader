@@ -1,0 +1,107 @@
+/* CSS Variables for theming */
+:root {
+    --primary-color: #007acc;
+    --primary-hover-color: #005a9e;
+    --background-color: #1e1e1e;
+    --surface-color: #252526;
+    --border-color: #3c3c3c;
+    --text-primary-color: #cccccc;
+    --text-secondary-color: #858585;
+    --input-background: #3c3c3c;
+    --input-border: #464647;
+    --input-focus-border: #007acc;
+    --welcome-color: #6c7086;
+    --user-message-bg: #2d2d30;
+    --ai-message-bg: #1e1e1e;
+    --hover-bg: #2a2d2e;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
+    --text-selection-color: #007bff;
+    --text-selection-opacity: 0.3;
+}
+
+/* Light mode theme */
+body.light-mode {
+    --primary-color: #007acc;
+    --primary-hover-color: #005a9e;
+    --background-color: #f3f4f6;
+    --surface-color: #ffffff;
+    --border-color: #e5e7eb;
+    --text-primary-color: #1f2937;
+    --text-secondary-color: #6b7280;
+    --input-background: #ffffff;
+    --input-border: #d1d5db;
+    --input-focus-border: #007acc;
+    --welcome-color: #9ca3af;
+    --user-message-bg: #f9fafb;
+    --ai-message-bg: #ffffff;
+    --hover-bg: #f3f4f6;
+}
+
+/* Global reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-primary-color);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Text selection styles */
+::selection {
+    background: rgba(from var(--text-selection-color) r g b / var(--text-selection-opacity));
+}
+
+/* Fallback for browsers that don't support rgba(from ...) */
+@supports not (background: rgba(from #000 r g b / 0.5)) {
+    ::selection {
+        background: rgba(0, 123, 255, var(--text-selection-opacity));
+    }
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary-color);
+}
+
+/* Button reset */
+button {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Input reset */
+input, textarea {
+    font-family: inherit;
+    font-size: inherit;
+}

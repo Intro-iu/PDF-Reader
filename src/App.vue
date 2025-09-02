@@ -20,6 +20,8 @@
             @page-changed="handlePageChanged"
             @text-selected="handleTextSelected"
             @error="handleError"
+            @translate-text="handleTranslateFromMenu"
+            @chat-with-text="handleChatFromMenu"
           />
         </div>
 
@@ -31,11 +33,14 @@
           :auto-translate="translationState.autoTranslate"
           :chat-messages="chatMessages"
           :is-chat-thinking="isChatThinking"
+          :is-collapsed="sidebarState.isCollapsed"
+          :active-tab="sidebarState.activeTab"
           @translate="handleTranslate"
           @toggle-auto-translate="toggleAutoTranslate"
           @send-message="handleSendMessage"
           @new-chat="handleNewChat"
           @sidebar-width-changed="handleSidebarWidthChanged"
+          @sidebar-state-changed="handleSidebarStateChanged"
         />
       </div>
     </div>
@@ -56,7 +61,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import Toolbar from './components/Toolbar.vue'
-import PdfViewer from './components/PdfViewer.vue'
+import PdfViewer from './components/PdfViewer_new.vue'
 import Sidebar from './components/Sidebar.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import { aiService } from './utils/ai'
@@ -89,6 +94,12 @@ const translationState = reactive<TranslationState>({
 
 const chatMessages = ref<ChatMessage[]>([])
 
+// 侧栏状态
+const sidebarState = reactive({
+  isCollapsed: false,
+  activeTab: 'translate' as 'translate' | 'chat'
+})
+
 // 事件处理函数
 const handleFileSelected = (file: File) => {
   selectedFile.value = file
@@ -107,8 +118,15 @@ const handleTextSelected = (text: string) => {
   const trimmedText = text.trim();
   translationState.selectedText = trimmedText;
   
-  // 如果启用了自动翻译，并且确实有文本内容，则立即翻译
-  if (translationState.autoTranslate && trimmedText) {
+  // 只有在以下条件都满足时才进行自动翻译：
+  // 1. 启用了自动翻译
+  // 2. 侧栏没有收起
+  // 3. 当前激活的是翻译标签页
+  // 4. 确实有文本内容
+  if (translationState.autoTranslate && 
+      !sidebarState.isCollapsed && 
+      sidebarState.activeTab === 'translate' && 
+      trimmedText) {
     handleTranslate(trimmedText);
   }
 };
@@ -148,6 +166,31 @@ const handleTranslate = async (text: string) => {
 const toggleAutoTranslate = () => {
   translationState.autoTranslate = !translationState.autoTranslate
   configManager.updateConfig({ enableSelectionTranslation: translationState.autoTranslate })
+}
+
+const handleTranslateFromMenu = (text: string) => {
+  // 确保侧栏展开且切换到翻译标签页
+  if (sidebarState.isCollapsed) {
+    sidebarState.isCollapsed = false
+  }
+  sidebarState.activeTab = 'translate'
+  
+  // 设置选中文本并开始翻译
+  translationState.selectedText = text
+  handleTranslate(text)
+}
+
+const handleChatFromMenu = (text: string) => {
+  // 确保侧栏展开且切换到聊天标签页
+  if (sidebarState.isCollapsed) {
+    sidebarState.isCollapsed = false
+  }
+  sidebarState.activeTab = 'chat'
+  
+  // 预填充聊天输入框内容
+  const chatInput = `请帮我分析这段内容："${text}"`
+  // 这里可以通过emit或者直接调用发送消息
+  handleSendMessage(chatInput)
 }
 
 const handleSendMessage = async (message: string) => {
@@ -206,6 +249,11 @@ const handleNewChat = () => {
 const handleSidebarWidthChanged = (width: number) => {
   // 可以在这里保存侧边栏宽度到本地存储
   localStorage.setItem('sidebar-width', width.toString())
+}
+
+const handleSidebarStateChanged = (isCollapsed: boolean, activeTab: string) => {
+  sidebarState.isCollapsed = isCollapsed
+  sidebarState.activeTab = activeTab as 'translate' | 'chat'
 }
 
 const toggleTheme = () => {

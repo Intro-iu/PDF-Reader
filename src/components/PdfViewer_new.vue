@@ -22,7 +22,7 @@
     </div>
 
     <!-- PDF内容区域 -->
-    <div class="pdf-content" @mouseup="handleTextSelection">
+    <div class="pdf-content" @mouseup="handleTextSelection" @contextmenu="handleContextMenu">
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
@@ -37,6 +37,34 @@
       
       <div v-else class="pdf-pages" ref="pdfPagesContainer">
         <!-- PDF 页面将通过 JavaScript 动态创建 -->
+      </div>
+    </div>
+
+    <!-- 右键上下文菜单 -->
+    <div 
+      v-if="contextMenu.show" 
+      class="context-menu"
+      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      @click.stop
+    >
+      <div class="context-menu-item" @click="handleTranslateAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+        </svg>
+        翻译选中文本
+      </div>
+      <div class="context-menu-item" @click="handleChatAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+        AI 分析
+      </div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" @click="handleCopyAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+        </svg>
+        复制文本
       </div>
     </div>
 
@@ -74,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { PdfManager } from '@/utils/pdf'
 
 const props = defineProps<{
@@ -86,6 +114,8 @@ const emit = defineEmits<{
   'page-changed': [number]
   'text-selected': [string]
   'error': [string]
+  'translate-text': [string]
+  'chat-with-text': [string]
 }>()
 
 // PDF 相关
@@ -103,6 +133,14 @@ const error = ref<string | null>(null)
 // 缩放相关变量
 const isRendering = ref(false)
 const renderTimeout = ref<NodeJS.Timeout | null>(null)
+
+// 右键菜单相关
+const contextMenu = reactive({
+  show: false,
+  x: 0,
+  y: 0
+})
+const selectedTextForMenu = ref('')
 
 const loadPdf = async (file: File) => {
   if (!file) return
@@ -296,7 +334,61 @@ const handleTextSelection = () => {
   if (selection && selection.toString().trim()) {
     const selectedText = selection.toString().trim()
     emit('text-selected', selectedText)
+    selectedTextForMenu.value = selectedText
   }
+}
+
+// 右键菜单处理
+const handleContextMenu = (event: MouseEvent) => {
+  const selection = window.getSelection()
+  const selectedText = selection?.toString().trim()
+  
+  // 只有在选中文本时才显示右键菜单
+  if (selectedText) {
+    event.preventDefault()
+    selectedTextForMenu.value = selectedText
+    
+    // 计算菜单位置，确保不超出屏幕边界
+    const x = event.clientX
+    const y = event.clientY
+    const menuWidth = 200 // 预估菜单宽度
+    const menuHeight = 120 // 预估菜单高度
+    
+    contextMenu.x = x + menuWidth > window.innerWidth ? x - menuWidth : x
+    contextMenu.y = y + menuHeight > window.innerHeight ? y - menuHeight : y
+    contextMenu.show = true
+  }
+}
+
+const hideContextMenu = () => {
+  contextMenu.show = false
+  selectedTextForMenu.value = ''
+}
+
+const handleTranslateAction = () => {
+  if (selectedTextForMenu.value) {
+    emit('translate-text', selectedTextForMenu.value)
+  }
+  hideContextMenu()
+}
+
+const handleChatAction = () => {
+  if (selectedTextForMenu.value) {
+    emit('chat-with-text', selectedTextForMenu.value)
+  }
+  hideContextMenu()
+}
+
+const handleCopyAction = async () => {
+  if (selectedTextForMenu.value) {
+    try {
+      await navigator.clipboard.writeText(selectedTextForMenu.value)
+      console.log('文本已复制到剪贴板')
+    } catch (err) {
+      console.error('复制失败:', err)
+    }
+  }
+  hideContextMenu()
 }
 
 // 监听文件变化
@@ -312,11 +404,14 @@ onMounted(() => {
   
   // 添加文本选择事件监听
   document.addEventListener('mouseup', handleTextSelection)
+  // 添加全局点击事件监听器来隐藏右键菜单
+  document.addEventListener('click', hideContextMenu)
 })
 
 onUnmounted(() => {
   // 清理事件监听
   document.removeEventListener('mouseup', handleTextSelection)
+  document.removeEventListener('click', hideContextMenu)
   
   // 清理定时器
   if (renderTimeout.value) {
@@ -520,5 +615,46 @@ onUnmounted(() => {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* 右键上下文菜单样式 */
+.context-menu {
+  position: fixed;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 180px;
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-primary-color);
+  transition: background-color 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.context-menu-item .menu-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 8px;
 }
 </style>

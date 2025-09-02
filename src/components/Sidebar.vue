@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TranslatePanel from './TranslatePanel.vue'
 import ChatPanel from './ChatPanel.vue'
 import type { ChatMessage } from '@/types'
@@ -78,6 +78,8 @@ interface Props {
   autoTranslate: boolean
   chatMessages: ChatMessage[]
   isChatThinking: boolean
+  isCollapsed?: boolean
+  activeTab?: 'translate' | 'chat'
 }
 
 interface Emits {
@@ -86,18 +88,19 @@ interface Emits {
   (e: 'send-message', message: string): void
   (e: 'new-chat'): void
   (e: 'sidebar-width-changed', width: number): void
+  (e: 'sidebar-state-changed', collapsed: boolean, activeTab: string): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const isCollapsed = ref(false)
+const isCollapsed = ref(props.isCollapsed ?? false)
 const sidebarWidthValue = ref(450)
 const isResizing = ref(false)
 const minWidth = 300
 const maxWidth = 800
 
-const activeTab = ref<'translate' | 'chat'>('translate')
+const activeTab = ref<'translate' | 'chat'>(props.activeTab ?? 'translate')
 
 const tabs = [
   {
@@ -112,16 +115,31 @@ const tabs = [
   }
 ]
 
+// 监听props变化并同步内部状态
+watch(() => props.isCollapsed, (newCollapsed) => {
+  if (newCollapsed !== undefined && newCollapsed !== isCollapsed.value) {
+    isCollapsed.value = newCollapsed
+  }
+})
+
+watch(() => props.activeTab, (newActiveTab) => {
+  if (newActiveTab && newActiveTab !== activeTab.value) {
+    activeTab.value = newActiveTab
+  }
+})
+
 const sidebarWidth = computed(() => {
   return isCollapsed.value ? '0px' : `${sidebarWidthValue.value}px`
 })
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
+  emit('sidebar-state-changed', isCollapsed.value, activeTab.value)
 }
 
 const switchTab = (tabId: 'translate' | 'chat') => {
   activeTab.value = tabId
+  emit('sidebar-state-changed', isCollapsed.value, activeTab.value)
 }
 
 const startResize = (e: MouseEvent) => {
@@ -177,6 +195,9 @@ onMounted(() => {
       console.warn('Failed to load sidebar state:', error)
     }
   }
+  
+  // 发送初始状态
+  emit('sidebar-state-changed', isCollapsed.value, activeTab.value)
 })
 
 onUnmounted(() => {

@@ -10,7 +10,7 @@ export interface AIModel {
   supportsTranslation: boolean;
 }
 
-export interface AppSettings {
+export interface AppConfig {
   aiModels: AIModel[];
   activeChatModel: string;
   activeTranslateModel: string;
@@ -21,13 +21,6 @@ export interface AppSettings {
   enableSelectionTranslation: boolean;
   textSelectionColor: string;
   selectionOpacity: number;
-}
-
-export interface AppConfig {
-  appName: string;
-  version: string;
-  lastModified: string;
-  settings: AppSettings;
 }
 
 export interface ChatMessage {

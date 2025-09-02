@@ -7,7 +7,7 @@ import { configManager } from './utils/config'
 async function main() {
   // 初始化应用
   await configManager.initialize();
-  initializeApp();
+  await initializeApp();
   applyCSSVariables();
   
   const app = createApp(App)

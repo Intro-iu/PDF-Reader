@@ -83,11 +83,8 @@ fn get_config_path(app_handle: &AppHandle) -> PathBuf {
 fn read_config(app_handle: &AppHandle) -> AppConfig {
     let config_path = get_config_path(app_handle);
     if !config_path.exists() {
-        let default_config = AppConfig::default();
-        // 如果文件不存在，创建一个带有默认配置的文件
-        if write_config(app_handle, default_config.clone()).is_ok() {
-            return default_config;
-        }
+        // 如果文件不存在，返回默认配置，但不立即创建文件
+        // 让前端决定是否需要创建默认配置
         return AppConfig::default();
     }
 
@@ -120,6 +117,13 @@ fn write_config(app_handle: &AppHandle, config: AppConfig) -> Result<(), std::io
 #[tauri::command]
 pub fn get_config(app_handle: AppHandle) -> AppConfig {
     read_config(&app_handle)
+}
+
+// Tauri 命令：检查配置文件是否存在
+#[tauri::command]
+pub fn config_file_exists(app_handle: AppHandle) -> bool {
+    let config_path = get_config_path(&app_handle);
+    config_path.exists()
 }
 
 // Tauri 命令：保存配置

@@ -1,11 +1,18 @@
+import { invoke } from '@tauri-apps/api/core'
 import { configManager } from './config'
 import type { AIModel } from '@/types'
 
-export const initializeApp = () => {
-  // 检查是否需要添加默认的 AI 模型
-  const config = configManager.getConfig()
+export const initializeApp = async () => {
+  // 确保配置已经初始化完成
+  await configManager.initialize()
   
-  if (config.settings.aiModels.length === 0) {
+  // 检查配置文件是否存在
+  const configFileExists = await invoke<boolean>('config_file_exists')
+  
+  // 只有在配置文件不存在时，才初始化默认配置
+  if (!configFileExists) {
+    console.log('Config file does not exist, initializing default configuration...')
+    
     // 添加一个示例模型配置（用户需要替换为实际的 API key）
     const defaultModel: AIModel = {
       id: 'default_deepseek_model',
@@ -17,8 +24,8 @@ export const initializeApp = () => {
       supportsTranslation: true
     }
     
-    configManager.addAIModel(defaultModel)
-    configManager.updateSettings({
+    await configManager.addAIModel(defaultModel)
+    await configManager.updateConfig({
       activeChatModel: defaultModel.id,
       activeTranslateModel: defaultModel.id
     })
@@ -33,7 +40,7 @@ export const initializeApp = () => {
 
 export const applyCSSVariables = () => {
   const config = configManager.getConfig()
-  const { textSelectionColor, selectionOpacity } = config.settings
+  const { textSelectionColor, selectionOpacity } = config
   
   // 动态设置文本选择颜色
   const root = document.documentElement

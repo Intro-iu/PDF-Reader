@@ -127,8 +127,8 @@ const handleTranslate = async (text: string) => {
     const result = await aiService.translateText(
       model, 
       text, 
-      configManager.getConfig().settings.translateTargetLang,
-      configManager.getConfig().settings.translationPrompt
+      configManager.getConfig().translateTargetLang,
+      configManager.getConfig().translationPrompt
     )
 
     if (result.error) {
@@ -147,7 +147,7 @@ const handleTranslate = async (text: string) => {
 
 const toggleAutoTranslate = () => {
   translationState.autoTranslate = !translationState.autoTranslate
-  configManager.updateSettings({ enableSelectionTranslation: translationState.autoTranslate })
+  configManager.updateConfig({ enableSelectionTranslation: translationState.autoTranslate })
 }
 
 const handleSendMessage = async (message: string) => {
@@ -178,7 +178,7 @@ const handleSendMessage = async (message: string) => {
       model,
       message,
       chatHistory,
-      configManager.getConfig().settings.chatPrompt
+      configManager.getConfig().chatPrompt
     )
 
     if (result.error) {
@@ -237,9 +237,9 @@ onMounted(() => {
     theme.value = savedTheme
   }
 
-  // 加载配置
+  // 从已初始化的 configManager 加载配置
   const config = configManager.getConfig()
-  translationState.autoTranslate = config.settings.enableSelectionTranslation
+  translationState.autoTranslate = config.enableSelectionTranslation
 })
 
 // 监听主题变化

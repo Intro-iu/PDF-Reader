@@ -31,7 +31,7 @@
           @click="switchTab(tab.id)"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path :d="tab.icon" />
+            <path :d="tab.icon"></path>
           </svg>
           {{ tab.label }}
         </button>
@@ -60,6 +60,16 @@
             @new-chat="handleNewChat"
           />
         </div>
+
+        <!-- 历史记录面板 -->
+        <div v-if="activeTab === 'history'" class="tab-panel">
+          <PdfHistoryPanel 
+            :pdf-history="pdfHistory || []"
+            @reopen-pdf="handleReopenPdf"
+            @delete-pdf-history="handleDeletePdfHistory"
+            @clear-pdf-history="handleClearPdfHistory"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -69,7 +79,16 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import TranslatePanel from './TranslatePanel.vue'
 import ChatPanel from './ChatPanel.vue'
+import PdfHistoryPanel from './PdfHistoryPanel.vue'
 import type { ChatMessage } from '@/types'
+
+interface PdfHistoryItem {
+  id: string
+  name: string
+  path: string
+  openTime: number
+  totalPages?: number
+}
 
 interface Props {
   selectedText: string
@@ -78,8 +97,9 @@ interface Props {
   autoTranslate: boolean
   chatMessages: ChatMessage[]
   isChatThinking: boolean
+  pdfHistory?: PdfHistoryItem[]
   isCollapsed?: boolean
-  activeTab?: 'translate' | 'chat'
+  activeTab?: 'translate' | 'chat' | 'history'
 }
 
 interface Emits {
@@ -89,6 +109,9 @@ interface Emits {
   (e: 'new-chat'): void
   (e: 'sidebar-width-changed', width: number): void
   (e: 'sidebar-state-changed', collapsed: boolean, activeTab: string): void
+  (e: 'reopen-pdf', item: PdfHistoryItem): void
+  (e: 'delete-pdf-history', id: string): void
+  (e: 'clear-pdf-history'): void
 }
 
 const props = defineProps<Props>()
@@ -100,7 +123,7 @@ const isResizing = ref(false)
 const minWidth = 300
 const maxWidth = 800
 
-const activeTab = ref<'translate' | 'chat'>(props.activeTab ?? 'translate')
+const activeTab = ref<'translate' | 'chat' | 'history'>(props.activeTab ?? 'translate')
 
 const tabs = [
   {
@@ -112,6 +135,11 @@ const tabs = [
     id: 'chat' as const,
     label: '聊天',
     icon: 'M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z'
+  },
+  {
+    id: 'history' as const,
+    label: '历史',
+    icon: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z'
   }
 ]
 
@@ -137,9 +165,21 @@ const toggleSidebar = () => {
   emit('sidebar-state-changed', isCollapsed.value, activeTab.value)
 }
 
-const switchTab = (tabId: 'translate' | 'chat') => {
+const switchTab = (tabId: 'translate' | 'chat' | 'history') => {
   activeTab.value = tabId
   emit('sidebar-state-changed', isCollapsed.value, activeTab.value)
+}
+
+const handleReopenPdf = (item: PdfHistoryItem) => {
+  emit('reopen-pdf', item)
+}
+
+const handleDeletePdfHistory = (id: string) => {
+  emit('delete-pdf-history', id)
+}
+
+const handleClearPdfHistory = () => {
+  emit('clear-pdf-history')
 }
 
 const startResize = (e: MouseEvent) => {

@@ -543,6 +543,9 @@ onUnmounted(() => {
   white-space: nowrap;
   cursor: text;
   overflow: hidden;
+  line-height: 1;
+  font-synthesis: none;
+  font-kerning: none;
 }
 
 :deep(.textLayer > span) {
@@ -550,10 +553,36 @@ onUnmounted(() => {
   position: absolute;
   white-space: nowrap;
   transform-origin: 0% 0%;
+  line-height: 1;
+  font-size: inherit;
+  font-family: inherit;
+  font-synthesis: none;
+  font-kerning: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
 }
 
 :deep(.textLayer ::selection) {
   background: rgba(0, 123, 255, 0.3);
+  padding: 0;
+  margin: 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* 改进选区在不同缩放下的表现 */
+:deep(.textLayer) {
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+/* 确保选区高度精确匹配文字 */
+:deep(.textLayer > span::selection) {
+  background: rgba(0, 123, 255, 0.3);
+  line-height: 1;
+  vertical-align: baseline;
 }
 
 /* PDF 页面容器 */

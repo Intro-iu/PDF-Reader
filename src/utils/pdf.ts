@@ -99,7 +99,8 @@ export class PdfManager {
         textContent,
         container: textLayerDiv,
         viewport,
-        textDivs: []
+        textDivs: [],
+        enhanceTextSelection: true
       });
     } catch (error) {
       console.warn('Text layer rendering failed:', error);

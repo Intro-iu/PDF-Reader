@@ -34,6 +34,7 @@
           :chat-messages="chatMessages"
           :is-chat-thinking="isChatThinking"
           :pdf-history="pdfHistory"
+          :is-app-ready="isAppReady"
           :is-collapsed="sidebarState.isCollapsed"
           :active-tab="sidebarState.activeTab"
           @translate="handleTranslate"
@@ -59,6 +60,26 @@
     <div v-if="error" class="error-toast" @click="clearError">
       {{ error }}
     </div>
+
+    <!-- 确认对话框 -->
+    <ConfirmDialog
+      v-model:show="showRetryDialog"
+      title="文件未找到"
+      :message="retryDialogData?.message"
+      warning="文件可能已被移动或删除"
+      confirm-text="重新选择"
+      @confirm="handleRetryConfirm"
+      @cancel="handleRetryCancel"
+    />
+
+    <ConfirmDialog
+      v-model:show="showFileSelectDialog"
+      title="选择文件"
+      :message="fileSelectData ? `请选择文件: ${fileSelectData.name}` : ''"
+      confirm-text="选择"
+      @confirm="handleFileSelectConfirm"
+      @cancel="handleFileSelectCancel"
+    />
   </div>
 </template>
 
@@ -68,6 +89,7 @@ import Toolbar from './components/Toolbar.vue'
 import PdfViewer from './components/PdfViewer_new.vue'
 import Sidebar from './components/Sidebar.vue'
 import SettingsModal from './components/SettingsModal.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
 import { applyCSSVariables } from './utils/init'
@@ -84,9 +106,19 @@ interface PdfHistoryItem {
 // 响应式状态
 const theme = ref<Theme>('dark')
 const selectedFile = ref<File | null>(null)
+const currentPdf = ref<string | null>(null)
+const pdfViewerRef = ref()
+const isCanvasReady = ref(false)
 const showSettings = ref(false)
 const error = ref<string | null>(null)
 const isChatThinking = ref(false)
+const isAppReady = ref(false) // 应用是否完全初始化完成
+
+// 确认对话框状态
+const showRetryDialog = ref(false)
+const retryDialogData = ref<{ item: PdfHistoryItem; message: string } | null>(null)
+const showFileSelectDialog = ref(false)
+const fileSelectData = ref<PdfHistoryItem | null>(null)
 
 const pdfViewerState = reactive<PdfViewerState>({
   currentScale: 1.0,
@@ -319,6 +351,20 @@ const addToPdfHistory = (fileName: string, filePath: string) => {
 }
 
 const handleReopenPdf = async (item: PdfHistoryItem) => {
+  // 检查应用是否已经完全初始化
+  if (!isAppReady.value) {
+    // 等待最多3秒，如果还未初始化完成则提示用户
+    for (let i = 0; i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (isAppReady.value) break
+    }
+    
+    if (!isAppReady.value) {
+      alert('应用正在初始化，请稍后再试')
+      return
+    }
+  }
+
   try {
     if (window.__TAURI_INTERNALS__ && item.path !== item.name) {
       // Tauri环境且有真实文件路径
@@ -344,68 +390,18 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
         console.log('成功重新打开PDF:', item.name)
         
       } catch (fileErr) {
-        // 文件可能已被移动或删除，提示用户
-        const retry = confirm(`无法找到文件: ${item.path}\n\n文件可能已被移动或删除。是否要选择新的文件位置？`)
-        if (retry) {
-          // 打开文件选择器让用户重新选择
-          const { open } = await import('@tauri-apps/plugin-dialog')
-          const selected = await open({
-            multiple: false,
-            filters: [{
-              name: 'PDF文件',
-              extensions: ['pdf']
-            }],
-            defaultPath: item.path
-          })
-          
-          if (selected) {
-            const newPath = selected as string
-            const fileData = await readFile(newPath)
-            const file = new File([fileData], item.name, { type: 'application/pdf' })
-            selectedFile.value = file
-            
-            // 更新历史记录中的路径
-            item.path = newPath
-            item.openTime = Date.now()
-            const index = pdfHistory.value.findIndex(h => h.id === item.id)
-            if (index > 0) {
-              pdfHistory.value.splice(index, 1)
-              pdfHistory.value.unshift(item)
-            }
-            savePdfHistory()
-          }
+        // 文件可能已被移动或删除，显示确认对话框
+        retryDialogData.value = {
+          item,
+          message: `无法找到文件: ${item.path}`
         }
+        showRetryDialog.value = true
       }
     } else {
-      // 浏览器环境或没有真实路径，提示用户选择文件
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = '.pdf'
-      input.style.display = 'none'
-      
-      const confirmed = confirm(`请选择文件: ${item.name}`)
-      if (!confirmed) return
-      
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (file) {
-          selectedFile.value = file
-          // 更新历史记录时间
-          item.openTime = Date.now()
-          const index = pdfHistory.value.findIndex(h => h.id === item.id)
-          if (index > 0) {
-            pdfHistory.value.splice(index, 1)
-            pdfHistory.value.unshift(item)
-            savePdfHistory()
-          }
-        }
-        document.body.removeChild(input)
-      }
-      
-      document.body.appendChild(input)
-      input.click()
+      // 浏览器环境或没有真实路径，显示文件选择确认对话框
+      fileSelectData.value = item
+      showFileSelectDialog.value = true
     }
-    
   } catch (err) {
     console.error('重新打开PDF失败:', err)
     error.value = '重新打开PDF失败: ' + (err as Error).message
@@ -458,6 +454,85 @@ const closeSettings = () => {
   applyCSSVariables() // 重新应用 CSS 变量
 }
 
+// 确认对话框处理函数
+const handleRetryConfirm = async () => {
+  if (!retryDialogData.value) return
+  
+  const { item } = retryDialogData.value
+  try {
+    // 打开文件选择器让用户重新选择
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const { readFile } = await import('@tauri-apps/plugin-fs')
+    
+    const selected = await open({
+      multiple: false,
+      filters: [{
+        name: 'PDF文件',
+        extensions: ['pdf']
+      }],
+      defaultPath: item.path
+    })
+    
+    if (selected) {
+      const newPath = selected as string
+      const fileData = await readFile(newPath)
+      const file = new File([fileData], item.name, { type: 'application/pdf' })
+      selectedFile.value = file
+      
+      // 更新历史记录中的路径
+      item.path = newPath
+      item.openTime = Date.now()
+      const index = pdfHistory.value.findIndex(h => h.id === item.id)
+      if (index > 0) {
+        pdfHistory.value.splice(index, 1)
+        pdfHistory.value.unshift(item)
+      }
+      savePdfHistory()
+    }
+  } catch (error) {
+    console.error('重新选择文件失败:', error)
+  }
+  retryDialogData.value = null
+}
+
+const handleRetryCancel = () => {
+  retryDialogData.value = null
+}
+
+const handleFileSelectConfirm = () => {
+  if (!fileSelectData.value) return
+  
+  const item = fileSelectData.value
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf'
+  input.style.display = 'none'
+  
+  input.onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) {
+      selectedFile.value = file
+      // 更新历史记录时间
+      item.openTime = Date.now()
+      const index = pdfHistory.value.findIndex(h => h.id === item.id)
+      if (index > 0) {
+        pdfHistory.value.splice(index, 1)
+        pdfHistory.value.unshift(item)
+        savePdfHistory()
+      }
+    }
+  }
+  
+  document.body.appendChild(input)
+  input.click()
+  document.body.removeChild(input)
+  fileSelectData.value = null
+}
+
+const handleFileSelectCancel = () => {
+  fileSelectData.value = null
+}
+
 const handleError = (errorMessage: string) => {
   error.value = errorMessage
 }
@@ -467,19 +542,40 @@ const clearError = () => {
 }
 
 // 生命周期
-onMounted(() => {
-  // 加载保存的主题
+onMounted(async () => {
+  console.log('开始应用初始化...')
+  
+  // 应用主题
   const savedTheme = localStorage.getItem('theme') as Theme
   if (savedTheme) {
     theme.value = savedTheme
   }
+  console.log('主题加载完成')
 
-  // 从已初始化的 configManager 加载配置
-  const config = configManager.getConfig()
-  translationState.autoTranslate = config.enableSelectionTranslation
+  try {
+    // 等待配置管理器初始化完成
+    await configManager.initialize()
+    console.log('配置管理器初始化完成')
+    
+    // 从已初始化的 configManager 加载配置
+    const config = configManager.getConfig()
+    translationState.autoTranslate = config.enableSelectionTranslation
+    console.log('配置加载完成')
+  } catch (error) {
+    console.error('配置初始化失败，使用默认配置:', error)
+    // 即使配置初始化失败，也要继续
+  }
   
   // 加载PDF历史记录
   loadPdfHistory()
+  console.log('PDF历史记录加载完成')
+  
+  // 等待一小段时间确保所有组件都已渲染
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  // 标记应用已完全初始化
+  isAppReady.value = true
+  console.log('应用初始化完成，isAppReady =', isAppReady.value)
 })
 
 // 监听主题变化

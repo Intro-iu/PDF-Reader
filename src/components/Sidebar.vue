@@ -99,6 +99,7 @@ interface Props {
   chatMessages: ChatMessage[]
   isChatThinking: boolean
   pdfHistory?: PdfHistoryItem[]
+  isAppReady: boolean
   isCollapsed?: boolean
   activeTab?: 'translate' | 'chat' | 'history'
 }

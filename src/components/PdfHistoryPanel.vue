@@ -16,22 +16,17 @@
       </div>
     </div>
 
-    <!-- 自定义确认对话框 -->
-    <div v-if="showConfirmDialog" class="confirm-overlay" @click="cancelClear">
-      <div class="confirm-dialog" @click.stop>
-        <div class="dialog-header">
-          <h4>确认清空</h4>
-        </div>
-        <div class="dialog-content">
-          <p>确定要清空所有 <strong>{{ confirmCount }}</strong> 条PDF历史记录吗？</p>
-          <p class="warning">⚠️ 此操作不可撤销！</p>
-        </div>
-        <div class="dialog-actions">
-          <button @click="cancelClear" class="cancel-btn">取消</button>
-          <button @click="confirmClear" class="confirm-btn">确定</button>
-        </div>
-      </div>
-    </div>
+    <!-- 统一的确认对话框 -->
+    <ConfirmDialog
+      v-model:show="showConfirmDialog"
+      title="确认清空"
+      :message="`确定要清空所有 ${confirmCount} 条PDF历史记录吗？`"
+      warning="此操作不可撤销！"
+      confirm-text="清空"
+      :is-danger="true"
+      @confirm="confirmClear"
+      @cancel="cancelClear"
+    />
 
     <div class="history-content">
       <div v-if="pdfHistory.length === 0" class="empty-history">
@@ -89,6 +84,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 
 interface PdfHistoryItem {
   id: string
@@ -392,79 +388,5 @@ const formatTime = (timestamp: number) => {
 
 .history-list::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
-}
-
-/* 确认对话框样式 */
-.confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.confirm-dialog {
-  background: var(--surface-color);
-  border-radius: 8px;
-  padding: 24px;
-  min-width: 320px;
-  max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.dialog-header h4 {
-  margin: 0 0 16px 0;
-  color: var(--text-primary);
-  font-size: 18px;
-}
-
-.dialog-content p {
-  margin: 0 0 12px 0;
-  color: var(--text-primary);
-  line-height: 1.5;
-}
-
-.dialog-content .warning {
-  color: #f39c12;
-  font-weight: 500;
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.cancel-btn, .confirm-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.cancel-btn {
-  background: var(--border-color);
-  color: var(--text-primary);
-}
-
-.cancel-btn:hover {
-  background: var(--text-secondary);
-}
-
-.confirm-btn {
-  background: #e74c3c;
-  color: white;
-}
-
-.confirm-btn:hover {
-  background: #c0392b;
 }
 </style>

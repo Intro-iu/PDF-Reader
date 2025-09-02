@@ -65,6 +65,7 @@
         <div v-if="activeTab === 'history'" class="tab-panel">
           <PdfHistoryPanel 
             :pdf-history="pdfHistory || []"
+            :is-app-ready="isAppReady"
             @reopen-pdf="handleReopenPdf"
             @delete-pdf-history="handleDeletePdfHistory"
             @clear-pdf-history="handleClearPdfHistory"
@@ -179,6 +180,7 @@ const handleDeletePdfHistory = (id: string) => {
 }
 
 const handleClearPdfHistory = () => {
+  console.log('Sidebar: handleClearPdfHistory 被调用')
   emit('clear-pdf-history')
 }
 

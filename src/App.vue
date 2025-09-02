@@ -418,8 +418,11 @@ const deletePdfHistory = (id: string) => {
 }
 
 const clearPdfHistory = () => {
+  // 子组件已经确认过了，这里直接清空
+  console.log('清空PDF历史记录，当前记录数：', pdfHistory.value.length)
   pdfHistory.value = []
   savePdfHistory()
+  console.log('PDF历史记录已清空')
 }
 
 const savePdfHistory = () => {

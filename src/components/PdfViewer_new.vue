@@ -1,26 +1,5 @@
 <template>
   <div class="pdf-viewer-container">
-    <!-- PDF缩放控制器 -->
-    <div v-if="pdfDoc" class="pdf-zoom-control">
-      <div class="zoom-control-handle">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
-        </svg>
-      </div>
-      <div class="zoom-slider-container">
-        <input 
-          type="range" 
-          class="zoom-slider" 
-          :min="minScale * 100"
-          :max="maxScale * 100"
-          :value="currentScale * 100"
-          @input="handleZoomChange"
-        >
-        <span class="zoom-label">{{ Math.round(currentScale * 100) }}%</span>
-      </div>
-    </div>
-
     <!-- PDF内容区域 -->
     <div class="pdf-content" @mouseup="handleTextSelection" @contextmenu="handleContextMenu">
       <div v-if="error" class="error-message">
@@ -35,7 +14,7 @@
         请选择一个 PDF 文件开始阅读
       </div>
       
-      <div v-else class="pdf-pages" ref="pdfPagesContainer">
+      <div v-else class="pdf-pages" ref="pdfPagesContainer" :class="{ 'pdf-dark-mode': pdfDarkMode }">
         <!-- PDF 页面将通过 JavaScript 动态创建 -->
       </div>
     </div>
@@ -70,33 +49,68 @@
 
     <!-- 页面导航 -->
     <div v-if="pdfDoc && totalPages > 1" class="page-navigation">
-      <button 
-        @click="goToPage(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        class="nav-button"
-      >
-        上一页
-      </button>
-      
-      <div class="page-input-container">
-        <input 
-          type="number" 
-          :value="currentPage"
-          :min="1"
-          :max="totalPages"
-          @input="handlePageInput"
-          class="page-input"
+      <div class="nav-controls">
+        <button 
+          @click="goToPage(currentPage - 1)"
+          :disabled="currentPage <= 1"
+          class="nav-button"
         >
-        <span class="page-total">/ {{ totalPages }}</span>
+          上一页
+        </button>
+        
+        <div class="page-input-container">
+          <input 
+            type="number" 
+            :value="currentPage"
+            :min="1"
+            :max="totalPages"
+            @input="handlePageInput"
+            class="page-input"
+          >
+          <span class="page-total">/ {{ totalPages }}</span>
+        </div>
+        
+        <button 
+          @click="goToPage(currentPage + 1)"
+          :disabled="currentPage >= totalPages"
+          class="nav-button"
+        >
+          下一页
+        </button>
       </div>
       
-      <button 
-        @click="goToPage(currentPage + 1)"
-        :disabled="currentPage >= totalPages"
-        class="nav-button"
-      >
-        下一页
-      </button>
+      <!-- PDF缩放控制器 -->
+      <div class="pdf-zoom-control">
+        <div class="zoom-control-handle">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
+          </svg>
+        </div>
+        <div class="zoom-slider-container">
+          <input 
+            type="range" 
+            class="zoom-slider" 
+            :min="minScale * 100"
+            :max="maxScale * 100"
+            :value="currentScale * 100"
+            @input="handleZoomChange"
+          >
+          <span class="zoom-label">{{ Math.round(currentScale * 100) }}%</span>
+        </div>
+        
+        <!-- PDF 夜间模式切换 -->
+        <button 
+          class="pdf-dark-mode-toggle"
+          @click="togglePdfDarkMode"
+          :title="pdfDarkMode ? '关闭 PDF 夜间模式' : '开启 PDF 夜间模式'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path v-if="pdfDarkMode" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+            <path v-else d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -126,6 +140,7 @@ const pdfDoc = ref<any>(null)
 const pdfPagesContainer = ref<HTMLElement | null>(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
+const pdfDarkMode = ref(false)
 const currentScale = ref(1.0)
 const minScale = ref(0.25)
 const maxScale = ref(4.0)
@@ -397,6 +412,12 @@ const handlePageInput = (event: Event) => {
   goToPage(pageNum)
 }
 
+const togglePdfDarkMode = () => {
+  pdfDarkMode.value = !pdfDarkMode.value
+  // 保存到本地存储
+  localStorage.setItem('pdfDarkMode', pdfDarkMode.value.toString())
+}
+
 const handleTextSelection = () => {
   const selection = window.getSelection()
   if (selection && selection.toString().trim()) {
@@ -470,6 +491,12 @@ onMounted(() => {
   minScale.value = pdfManager.getMinScale()
   maxScale.value = pdfManager.getMaxScale()
   
+  // 恢复保存的PDF夜间模式设置
+  const savedPdfDarkMode = localStorage.getItem('pdfDarkMode')
+  if (savedPdfDarkMode) {
+    pdfDarkMode.value = savedPdfDarkMode === 'true'
+  }
+  
   // 添加文本选择事件监听
   document.addEventListener('mouseup', handleTextSelection)
   // 添加全局点击事件监听器来隐藏右键菜单
@@ -502,19 +529,14 @@ defineExpose({
 }
 
 .pdf-zoom-control {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 200px;
+  background: var(--input-background);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  min-width: 180px;
 }
 
 .zoom-control-handle {
@@ -562,6 +584,29 @@ defineExpose({
   border: none;
 }
 
+.pdf-dark-mode-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pdf-dark-mode-toggle:hover {
+  background: var(--hover-color);
+  color: var(--text-primary-color);
+}
+
+.pdf-dark-mode-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
 .zoom-label {
   font-size: 12px;
   font-weight: 500;
@@ -606,6 +651,18 @@ defineExpose({
   padding: 16px;
   background: var(--surface-color);
   border-top: 1px solid var(--border-color);
+  position: relative;
+}
+
+.page-navigation .nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-navigation .pdf-zoom-control {
+  position: absolute;
+  right: 16px;
 }
 
 .nav-button {
@@ -729,5 +786,15 @@ defineExpose({
   height: 1px;
   background-color: var(--border-color);
   margin: 4px 8px;
+}
+
+/* PDF 夜间模式样式 */
+.pdf-dark-mode {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* 检测并保持图片在夜间模式下相对正常 */
+.pdf-dark-mode :deep(.pdf-page .pdf-image) {
+  filter: invert(1) hue-rotate(180deg);
 }
 </style>

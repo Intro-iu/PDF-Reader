@@ -70,9 +70,12 @@
     />
 
     <!-- 错误提示 -->
-    <div v-if="error" class="error-toast" @click="clearError">
-      {{ error }}
-    </div>
+    <Transition name="toast">
+      <div v-if="error" class="error-toast" @click="clearError">
+        {{ error }}
+        <button class="toast-close" @click.stop="clearError" title="关闭">×</button>
+      </div>
+    </Transition>
 
     <!-- 确认对话框 -->
     <ConfirmDialog
@@ -97,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import Toolbar from './components/Toolbar.vue'
 import PdfViewer from './components/PdfViewer_new.vue'
 import Sidebar from './components/Sidebar.vue'
@@ -125,6 +128,7 @@ const pdfViewerRef = ref()
 const isCanvasReady = ref(false)
 const showSettings = ref(false)
 const error = ref<string | null>(null)
+const errorTimer = ref<NodeJS.Timeout | null>(null)
 const isChatThinking = ref(false)
 const isAppReady = ref(false) // 应用是否完全初始化完成
 
@@ -221,7 +225,7 @@ const handleTextSelected = (text: string) => {
 const handleTranslate = async (text: string) => {
   const model = configManager.getActiveModel('translate')
   if (!model) {
-    error.value = '请先在设置中配置翻译模型'
+    setError('请先在设置中配置翻译模型')
     return
   }
 
@@ -238,13 +242,13 @@ const handleTranslate = async (text: string) => {
 
     if (result.error) {
       translationState.error = result.error
-      error.value = result.error
+      setError(result.error)
     } else {
       translationState.translatedText = result.translatedText
     }
   } catch (err: any) {
     translationState.error = err.message
-    error.value = err.message
+    setError(err.message)
   } finally {
     translationState.isTranslating = false
   }
@@ -324,7 +328,7 @@ const handleOutlineWidthChanged = (width: number) => {
 const handleSendMessage = async (message: string) => {
   const model = configManager.getActiveModel('chat')
   if (!model) {
-    error.value = '请先在设置中配置聊天模型'
+    setError('请先在设置中配置聊天模型')
     return
   }
 
@@ -353,7 +357,7 @@ const handleSendMessage = async (message: string) => {
     )
 
     if (result.error) {
-      error.value = result.error
+      setError(result.error)
     } else {
       const aiMessage: ChatMessage = {
         id: `ai_${Date.now()}`,
@@ -364,7 +368,7 @@ const handleSendMessage = async (message: string) => {
       chatMessages.value.push(aiMessage)
     }
   } catch (err: any) {
-    error.value = err.message
+    setError(err.message)
   } finally {
     isChatThinking.value = false
   }
@@ -471,7 +475,7 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
     }
   } catch (err) {
     console.error('重新打开PDF失败:', err)
-    error.value = '重新打开PDF失败: ' + (err as Error).message
+    setError('重新打开PDF失败: ' + (err as Error).message)
   }
 }
 
@@ -601,11 +605,30 @@ const handleFileSelectCancel = () => {
 }
 
 const handleError = (errorMessage: string) => {
-  error.value = errorMessage
+  setError(errorMessage)
 }
 
 const clearError = () => {
   error.value = null
+  if (errorTimer.value) {
+    clearTimeout(errorTimer.value)
+    errorTimer.value = null
+  }
+}
+
+const setError = (errorMessage: string) => {
+  error.value = errorMessage
+  
+  // 清除之前的定时器
+  if (errorTimer.value) {
+    clearTimeout(errorTimer.value)
+  }
+  
+  // 5秒后自动清除错误
+  errorTimer.value = setTimeout(() => {
+    error.value = null
+    errorTimer.value = null
+  }, 5000)
 }
 
 // 生命周期
@@ -643,6 +666,14 @@ onMounted(async () => {
   // 标记应用已完全初始化
   isAppReady.value = true
   console.log('应用初始化完成，isAppReady =', isAppReady.value)
+})
+
+// 清理定时器
+onUnmounted(() => {
+  if (errorTimer.value) {
+    clearTimeout(errorTimer.value)
+    errorTimer.value = null
+  }
 })
 
 // 监听主题变化
@@ -737,12 +768,55 @@ body, html {
   right: 20px;
   background: #f56565;
   color: white;
-  padding: 12px 16px;
+  padding: 12px 40px 12px 16px;
   border-radius: 8px;
   cursor: pointer;
   z-index: 1001;
   max-width: 300px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-close {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.toast-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 过渡动画 */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
 }
 
 /* 滚动条样式 */

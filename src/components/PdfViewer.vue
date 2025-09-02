@@ -19,6 +19,18 @@
         >
         <span class="zoom-label">{{ Math.round(currentScale * 100) }}%</span>
       </div>
+      
+      <!-- PDF 夜间模式切换 -->
+      <button 
+        class="pdf-dark-mode-toggle"
+        @click="togglePdfDarkMode"
+        :title="pdfDarkMode ? '关闭 PDF 夜间模式' : '开启 PDF 夜间模式'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path v-if="pdfDarkMode" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+          <path v-else d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- PDF内容区域 -->
@@ -35,7 +47,7 @@
         请选择一个 PDF 文件开始阅读
       </div>
       
-      <div v-else class="pdf-pages" ref="pdfPagesContainer">
+      <div v-else class="pdf-pages" ref="pdfPagesContainer" :class="{ 'pdf-dark-mode': pdfDarkMode }">
         <!-- PDF 页面将通过 JavaScript 动态创建 -->
       </div>
     </div>
@@ -103,6 +115,7 @@ const error = ref<string | null>(null)
 // 缩放相关变量
 const isRendering = ref(false)
 const renderTimeout = ref<NodeJS.Timeout | null>(null)
+const pdfDarkMode = ref(false)
 
 const loadPdf = async (file: File) => {
   if (!file) return
@@ -299,6 +312,12 @@ const handleTextSelection = () => {
   }
 }
 
+const togglePdfDarkMode = () => {
+  pdfDarkMode.value = !pdfDarkMode.value
+  // 保存设置到 localStorage
+  localStorage.setItem('pdfDarkMode', pdfDarkMode.value.toString())
+}
+
 // 监听文件变化
 watch(() => props.file, (newFile) => {
   if (newFile) {
@@ -309,6 +328,12 @@ watch(() => props.file, (newFile) => {
 onMounted(() => {
   minScale.value = pdfManager.getMinScale()
   maxScale.value = pdfManager.getMaxScale()
+  
+  // 加载 PDF 夜间模式设置
+  const savedPdfDarkMode = localStorage.getItem('pdfDarkMode')
+  if (savedPdfDarkMode) {
+    pdfDarkMode.value = savedPdfDarkMode === 'true'
+  }
   
   // 添加文本选择事件监听
   document.addEventListener('mouseup', handleTextSelection)
@@ -400,6 +425,31 @@ onUnmounted(() => {
   color: var(--text-primary-color);
   min-width: 35px;
   text-align: center;
+}
+
+.pdf-dark-mode-toggle {
+  width: 32px;
+  height: 32px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary-color);
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.pdf-dark-mode-toggle:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
+}
+
+.pdf-dark-mode-toggle svg {
+  width: 16px;
+  height: 16px;
 }
 
 .pdf-content {
@@ -514,6 +564,24 @@ onUnmounted(() => {
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 夜间模式下的 PDF 页面背景 */
+.pdf-dark-mode :deep(.pdf-page) {
+  background: var(--background-color) !important;
+  border-color: var(--border-color);
+}
+
+/* 夜间模式下的 PDF 反色效果 */
+.pdf-dark-mode :deep(.pdf-page canvas) {
+  filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(0.9);
+  transition: filter 0.3s ease;
+}
+
+/* 检测并保持图片在夜间模式下相对正常 */
+.pdf-dark-mode :deep(.pdf-page .pdf-image) {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 :deep(.pdf-page canvas) {

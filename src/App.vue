@@ -12,9 +12,21 @@
 
       <!-- 主内容区域 -->
       <div class="main-content">
+        <!-- 目录侧栏 -->
+        <OutlineSidebar 
+          :outline-data="pdfOutline"
+          :current-page="pdfViewerState.currentPage"
+          :is-collapsed="outlineSidebarCollapsed"
+          :width="outlineSidebarWidth"
+          @go-to-page="handleGoToPage"
+          @toggle-collapse="handleOutlineToggle"
+          @width-changed="handleOutlineWidthChanged"
+        />
+
         <!-- PDF 查看器 -->
         <div class="pdf-viewer-section">
           <PdfViewer 
+            ref="pdfViewerRef"
             :file="selectedFile"
             @pdf-loaded="handlePdfLoaded"
             @page-changed="handlePageChanged"
@@ -22,6 +34,7 @@
             @error="handleError"
             @translate-text="handleTranslateFromMenu"
             @chat-with-text="handleChatFromMenu"
+            @outline-loaded="handleOutlineLoaded"
           />
         </div>
 
@@ -90,6 +103,7 @@ import PdfViewer from './components/PdfViewer_new.vue'
 import Sidebar from './components/Sidebar.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
+import OutlineSidebar from './components/OutlineSidebar.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
 import { applyCSSVariables } from './utils/init'
@@ -119,6 +133,18 @@ const showRetryDialog = ref(false)
 const retryDialogData = ref<{ item: PdfHistoryItem; message: string } | null>(null)
 const showFileSelectDialog = ref(false)
 const fileSelectData = ref<PdfHistoryItem | null>(null)
+
+// 目录侧栏状态
+const pdfOutline = ref<OutlineItem[]>([])
+const outlineSidebarCollapsed = ref(false)
+const outlineSidebarWidth = ref(250)
+
+interface OutlineItem {
+  id: string
+  title: string
+  page: number
+  level: number
+}
 
 const pdfViewerState = reactive<PdfViewerState>({
   currentScale: 1.0,
@@ -252,6 +278,41 @@ const handleChatFromMenu = (text: string) => {
   const chatInput = `请帮我分析这段内容："${text}"`
   // 这里可以通过emit或者直接调用发送消息
   handleSendMessage(chatInput)
+}
+
+// 目录相关处理函数
+const handleOutlineLoaded = (outline: OutlineItem[]) => {
+  pdfOutline.value = outline
+  console.log('PDF目录加载完成:', outline)
+}
+
+const handleGoToPage = (page: number) => {
+  // 通过 ref 调用 PdfViewer 的 goToPage 方法
+  if (pdfViewerRef.value && typeof pdfViewerRef.value.goToPage === 'function') {
+    pdfViewerRef.value.goToPage(page)
+  } else {
+    // 降级方案：直接操作 DOM
+    const container = document.querySelector('.pdf-pages')
+    if (container) {
+      const pageElement = container.querySelector(`[data-page="${page}"]`) as HTMLElement
+      if (pageElement) {
+        pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
+  console.log('跳转到页面:', page)
+}
+
+const handleOutlineToggle = (collapsed: boolean) => {
+  outlineSidebarCollapsed.value = collapsed
+  // 保存状态到本地存储
+  localStorage.setItem('outline-sidebar-collapsed', collapsed.toString())
+}
+
+const handleOutlineWidthChanged = (width: number) => {
+  outlineSidebarWidth.value = width
+  // 保存宽度到本地存储
+  localStorage.setItem('outline-sidebar-width', width.toString())
 }
 
 const handleSendMessage = async (message: string) => {

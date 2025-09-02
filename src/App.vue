@@ -104,13 +104,14 @@ const handlePageChanged = (page: number) => {
 }
 
 const handleTextSelected = (text: string) => {
-  translationState.selectedText = text
+  const trimmedText = text.trim();
+  translationState.selectedText = trimmedText;
   
-  // 如果启用了自动翻译，立即翻译
-  if (translationState.autoTranslate && text.trim()) {
-    handleTranslate(text)
+  // 如果启用了自动翻译，并且确实有文本内容，则立即翻译
+  if (translationState.autoTranslate && trimmedText) {
+    handleTranslate(trimmedText);
   }
-}
+};
 
 const handleTranslate = async (text: string) => {
   const model = configManager.getActiveModel('translate')

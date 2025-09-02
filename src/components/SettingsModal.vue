@@ -1,8 +1,33 @@
 '''<script setup lang="ts">
-import { ref, onMounted, reactive, watch, nextTick } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
+import { reactive, onMounted, watch, ref } from 'vue';
+
+// --- 类型定义 ---
+interface AiModel {
+    id: string;
+    name: string;
+    modelId: string;
+    apiEndpoint: string;
+    apiKey: string;
+    supportsChat: boolean;
+    supportsTranslation: boolean;
+}
+
+interface AppConfig {
+    aiModels: AiModel[];
+    activeChatModel: string;
+    activeTranslateModel: string;
+    translateTargetLang: string;
+    autoSaveSettings: boolean;
+    enableSelectionTranslation: boolean;
+    textSelectionColor: string;
+    selectionOpacity: number;
+    chatPrompt: string;
+    translationPrompt: string;
+}
 
 // --- 响应式状态 ---
-const defaultSettings = {
+const settings = reactive<AppConfig>({
     aiModels: [],
     activeChatModel: '',
     activeTranslateModel: '',
@@ -13,12 +38,10 @@ const defaultSettings = {
     selectionOpacity: 30,
     chatPrompt: '你是一个专业的学术论文阅读助手。',
     translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
-};
+});
 
-const settings = reactive(JSON.parse(JSON.stringify(defaultSettings)));
 const isModalOpen = ref(false);
-const editingModel = reactive({
-    id: null,
+const editingModel = reactive<Omit<AiModel, 'id'>>({
     name: '',
     modelId: '',
     apiEndpoint: '',
@@ -30,8 +53,8 @@ const editingModel = reactive({
 const emit = defineEmits(['close']);
 
 // --- 生命周期钩子 ---
-onMounted(() => {
-    loadSettings();
+onMounted(async () => {
+    await loadSettings();
     applyTheme(localStorage.getItem('theme') || 'dark');
     watch(settings, () => {
         if (settings.autoSaveSettings) {
@@ -41,44 +64,47 @@ onMounted(() => {
 });
 
 // --- 方法 ---
-function loadSettings() {
+async function loadSettings() {
     try {
-        const savedSettings = localStorage.getItem('pdfReaderSettings');
-        if (savedSettings) {
-            Object.assign(settings, { ...defaultSettings, ...JSON.parse(savedSettings) });
-        } else {
-            Object.assign(settings, defaultSettings);
-        }
+        const loadedConfig = await invoke<AppConfig>('get_config');
+        Object.assign(settings, loadedConfig);
         applySettingsToDOM();
     } catch (error) {
-        console.error('加载设置失败:', error);
-        Object.assign(settings, defaultSettings);
+        console.error('从后端加载配置失败:', error);
+        showNotification('加载配置失败', 'error');
     }
 }
 
-function saveSettings(isManual = false) {
+async function saveSettings(isManual = false) {
     try {
-        localStorage.setItem('pdfReaderSettings', JSON.stringify(settings));
+        await invoke('set_config', { config: JSON.parse(JSON.stringify(settings)) });
         if (isManual) {
-            showNotification('设置已保存', 'success');
+            showNotification('设置已保存到文件', 'success');
         }
     } catch (error) {
-        console.error('保存设置失败:', error);
-        showNotification('保存设置失败', 'error');
+        console.error('保存配置到后端失败:', error);
+        showNotification('保存配置失败', 'error');
     }
-}
-
-function collectAndSaveSettings(isManual = false) {
-    // 由于数据是双向绑定的，大部分已经同步到 settings 对象
-    saveSettings(isManual);
 }
 
 function resetSettings() {
-    if (confirm('确定要重置所有设置吗？')) {
-        localStorage.removeItem('pdfReaderSettings');
-        Object.assign(settings, defaultSettings);
+    if (confirm('确定要重置所有设置吗？此操作将恢复为默认设置并保存。')) {
+        const defaultConfig = {
+            aiModels: [],
+            activeChatModel: '',
+            activeTranslateModel: '',
+            translateTargetLang: 'zh',
+            autoSaveSettings: true,
+            enableSelectionTranslation: true,
+            textSelectionColor: '#007bff',
+            selectionOpacity: 30,
+            chatPrompt: '你是一个专业的学术论文阅读助手。',
+            translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
+        };
+        Object.assign(settings, defaultConfig);
+        saveSettings(true); // 重置后立即保存到后端
         applySettingsToDOM();
-        showNotification('设置已重置', 'info');
+        showNotification('设置已重置为默认值', 'info');
     }
 }
 
@@ -88,7 +114,7 @@ function generateModelId() {
 
 function openAddModelModal() {
     Object.assign(editingModel, {
-        id: null, name: '', modelId: '', apiEndpoint: '', apiKey: '',
+        name: '', modelId: '', apiEndpoint: '', apiKey: '',
         supportsChat: true, supportsTranslation: true
     });
     isModalOpen.value = true;
@@ -96,7 +122,7 @@ function openAddModelModal() {
 
 function handleFormSubmit() {
     if (editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey) {
-        const newModel = { ...editingModel, id: generateModelId() };
+        const newModel: AiModel = { ...editingModel, id: generateModelId() };
         settings.aiModels.push(newModel);
         isModalOpen.value = false;
     }
@@ -110,10 +136,10 @@ function deleteAiModel(modelId: string) {
     }
 }
 
-function updateAiModelField(modelId: string, field: string, value: any) {
+function updateAiModelField(modelId: string, field: keyof AiModel, value: any) {
     const model = settings.aiModels.find(m => m.id === modelId);
     if (model) {
-        model[field] = value;
+        (model as any)[field] = value;
     }
 }
 
@@ -160,61 +186,18 @@ function showNotification(message: string, type = 'info') {
     }, 3000);
 }
 
-// --- 文件导入/导出 ---
-const importConfigFile = ref<HTMLInputElement | null>(null);
-
-function triggerImport() {
-    importConfigFile.value?.click();
-}
-
-function handleFileImport(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    if (!file.type.includes('json')) {
-        showNotification('请选择JSON格式的配置文件', 'error');
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const configData = JSON.parse(e.target?.result as string);
-            if (configData && typeof configData.settings === 'object') {
-                Object.assign(settings, { ...defaultSettings, ...configData.settings });
-                applySettingsToDOM();
-                showNotification('配置已成功导入', 'success');
-            } else {
-                showNotification('配置文件格式不正确', 'error');
-            }
-        } catch (parseError) {
-            showNotification('解析配置文件失败', 'error');
-        }
-    };
-    reader.readAsText(file);
-    (event.target as HTMLInputElement).value = '';
-}
-
+// --- 文件导入/导出 (现在通过Tauri后端处理，前端只触发) ---
 async function exportConfig() {
-    try {
-        const configData = {
-            appName: 'PDF-Reader',
-            version: '1.0.0',
-            lastModified: new Date().toISOString(),
-            settings: { ...settings }
-        };
-        const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'config.json';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showNotification('配置已导出为 config.json', 'success');
-    } catch (error) {
-        console.error('导出配置文件失败:', error);
-        showNotification('导出配置文件失败', 'error');
+    // 导出功能现在是直接保存到应用配置目录，而不是下载文件
+    await saveSettings(true);
+    showNotification('配置已保存到应用目录', 'success');
+}
+
+async function importConfig() {
+    // 导入现在是从应用配置目录加载
+    if (confirm('这将覆盖当前设置，确定要从文件加载配置吗？')) {
+        await loadSettings();
+        showNotification('配置已从文件加载', 'success');
     }
 }
 
@@ -371,17 +354,12 @@ async function exportConfig() {
                     </div>
 
                     <div class="settings-actions">
-                        <input type="file" ref="importConfigFile" @change="handleFileImport" accept=".json" style="display: none;">
                         <button id="settings-reset" class="btn-secondary" @click="resetSettings">重置设置</button>
-                        <button id="import-config" class="btn-secondary" @click="triggerImport">
+                        <button id="import-config" class="btn-secondary" @click="importConfig">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
-                            导入配置
+                            从文件加载
                         </button>
-                        <button id="export-config" class="btn-secondary" @click="exportConfig">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
-                            导出配置
-                        </button>
-                        <button id="settings-save" class="btn-primary" @click="collectAndSaveSettings(true)">保存设置</button>
+                        <button id="settings-save" class="btn-primary" @click="saveSettings(true)">保存设置到文件</button>
                     </div>
                 </div>
             </div>

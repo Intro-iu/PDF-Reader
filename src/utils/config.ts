@@ -1,11 +1,80 @@
+import { invoke } from '@tauri-apps/api/core';
 import type { AIModel, AppConfig } from '@/types';
 
 class ConfigManager {
-  private config: AppConfig;
-  private readonly CONFIG_KEY = 'pdf-reader-config';
+  private config!: AppConfig; // Use definite assignment assertion
+  private isInitialized = false;
 
-  constructor() {
-    this.config = this.loadConfig();
+  // Private constructor to enforce singleton pattern
+  private constructor() {}
+
+  private static instance: ConfigManager;
+
+  public static getInstance(): ConfigManager {
+    if (!ConfigManager.instance) {
+      ConfigManager.instance = new ConfigManager();
+    }
+    return ConfigManager.instance;
+  }
+
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+    try {
+      // Call the backend to get the config
+      const backendConfig = await invoke<AppConfig>('get_config');
+      this.config = this.transformBackendToFrontend(backendConfig);
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to load config from backend, using default:', error);
+      // Fallback to default if backend fails
+      this.config = this.getDefaultConfig();
+      this.isInitialized = true;
+    }
+  }
+
+  private transformBackendToFrontend(backendConfig: any): AppConfig {
+    // The backend config is flat, the frontend expects a nested 'settings' object.
+    // We need to transform it.
+    const {
+      aiModels,
+      activeChatModel,
+      activeTranslateModel,
+      translateTargetLang,
+      autoSaveSettings,
+      enableSelectionTranslation,
+      textSelectionColor,
+      selectionOpacity,
+      chatPrompt,
+      translationPrompt,
+      ...rest
+    } = backendConfig;
+
+    return {
+      ...this.getDefaultConfig(), // Start with defaults to ensure all fields are present
+      ...rest, // Add any other top-level fields from backend
+      lastModified: new Date().toISOString(), // Set current timestamp
+      settings: {
+        aiModels,
+        activeChatModel,
+        activeTranslateModel,
+        translateTargetLang,
+        autoSaveSettings,
+        enableSelectionTranslation,
+        textSelectionColor,
+        selectionOpacity,
+        chatPrompt,
+        translationPrompt,
+      },
+    };
+  }
+
+  private transformFrontendToBackend(frontendConfig: AppConfig): any {
+    // Transform the nested frontend config back to a flat structure for the backend.
+    const { settings, ...rest } = frontendConfig;
+    // We don't need to send appName, version, lastModified to the backend
+    return { ...settings };
   }
 
   private getDefaultConfig(): AppConfig {
@@ -28,50 +97,46 @@ class ConfigManager {
     };
   }
 
-  private loadConfig(): AppConfig {
-    try {
-      const saved = localStorage.getItem(this.CONFIG_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...this.getDefaultConfig(), ...parsed };
-      }
-    } catch (error) {
-      console.warn('Failed to load config from localStorage:', error);
+  public async saveConfig(): Promise<void> {
+    if (!this.isInitialized) {
+      console.warn("Config not initialized, skipping save.");
+      return;
     }
-    return this.getDefaultConfig();
-  }
-
-  public saveConfig(): void {
     try {
       this.config.lastModified = new Date().toISOString();
-      localStorage.setItem(this.CONFIG_KEY, JSON.stringify(this.config));
+      const backendConfig = this.transformFrontendToBackend(this.config);
+      await invoke('set_config', { config: backendConfig });
     } catch (error) {
-      console.error('Failed to save config to localStorage:', error);
+      console.error('Failed to save config to backend:', error);
     }
   }
 
   public getConfig(): AppConfig {
+    if (!this.isInitialized) {
+      console.warn("Attempted to get config before initialization. Returning default config.");
+      return this.getDefaultConfig();
+    }
     return { ...this.config };
   }
 
-  public updateSettings(updates: Partial<AppConfig['settings']>): void {
+  public async updateSettings(updates: Partial<AppConfig['settings']>): Promise<void> {
     this.config.settings = { ...this.config.settings, ...updates };
     if (this.config.settings.autoSaveSettings) {
-      this.saveConfig();
+      await this.saveConfig();
     }
   }
 
-  public addAIModel(model: AIModel): void {
+  public async addAIModel(model: AIModel): Promise<void> {
     const existingIndex = this.config.settings.aiModels.findIndex((m: AIModel) => m.id === model.id);
     if (existingIndex >= 0) {
       this.config.settings.aiModels[existingIndex] = model;
     } else {
       this.config.settings.aiModels.push(model);
     }
-    this.saveConfig();
+    await this.saveConfig();
   }
 
-  public removeAIModel(modelId: string): void {
+  public async removeAIModel(modelId: string): Promise<void> {
     this.config.settings.aiModels = this.config.settings.aiModels.filter((m: AIModel) => m.id !== modelId);
     if (this.config.settings.activeChatModel === modelId) {
       this.config.settings.activeChatModel = "";
@@ -79,7 +144,7 @@ class ConfigManager {
     if (this.config.settings.activeTranslateModel === modelId) {
       this.config.settings.activeTranslateModel = "";
     }
-    this.saveConfig();
+    await this.saveConfig();
   }
 
   public getActiveModel(type: 'chat' | 'translate'): AIModel | null {
@@ -91,4 +156,4 @@ class ConfigManager {
   }
 }
 
-export const configManager = new ConfigManager();
+export const configManager = ConfigManager.getInstance();

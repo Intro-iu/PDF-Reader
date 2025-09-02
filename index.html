@@ -80,12 +80,12 @@
                 <div id="sidebar-resizer" class="sidebar-resizer" title="拖拽调整侧边栏宽度"></div>
                 <div class="sidebar-header">
                     <div class="sidebar-tabs">
-                        <button class="tab-button" data-tab="translate-panel">翻译</button>
-                        <button class="tab-button active" data-tab="chat-panel">AI 对话</button>
+                        <button class="tab-button active" data-tab="translate-panel">翻译</button>
+                        <button class="tab-button" data-tab="chat-panel">AI 对话</button>
                     </div>
                 </div>
                 <div class="sidebar-panels">
-                    <div id="translate-panel" class="tab-panel">
+                    <div id="translate-panel" class="tab-panel active">
                         <div class="translate-controls">
                             <div class="setting-group-inline">
                                 <label for="translate-target-lang">目标语言:</label>
@@ -109,6 +109,9 @@
                         </div>
                         <h4>原文</h4>
                         <pre id="selected-text">在这里显示划选的文本</pre>
+                        <div class="translate-action">
+                            <button id="translate-button" class="btn-primary">翻译</button>
+                        </div>
                         <div class="translation-header">
                             <h4>译文</h4>
                             <span id="translation-status"></span>
@@ -118,7 +121,7 @@
                         </div>
                     </div>
                     <!-- VSC Copilot-style Layout -->
-                    <div id="chat-panel" class="tab-panel active">
+                    <div id="chat-panel" class="tab-panel">
                         <div class="chat-header">
                             <div class="chat-title">
                                 <span class="chat-icon">🤖</span>

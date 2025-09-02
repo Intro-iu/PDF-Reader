@@ -8,7 +8,7 @@
       :title="isCollapsed ? '展开侧边栏' : '收起侧边栏'"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+        <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
       </svg>
     </button>
 
@@ -203,34 +203,40 @@ onUnmounted(() => {
 
 .sidebar.collapsed {
   width: 0 !important;
-  overflow: hidden;
+  min-width: 0 !important;
+  overflow: visible; /* 重要：让按钮在收起状态下仍然可见 */
+  border-left: none;
 }
 
 .sidebar-toggle {
   position: absolute;
-  left: -24px;
   top: 50%;
+  left: -25px;
   transform: translateY(-50%);
   width: 24px;
-  height: 48px;
+  height: 60px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-right: none;
-  border-radius: 4px 0 0 4px;
+  border-radius: 8px 0 0 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  transition: all 0.2s;
+  z-index: 50;
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle.collapsed {
+  left: -24px; /* 调整位置确保在收起状态下可见 */
+  border-left: none;
+  border-right: 1px solid var(--border-color);
+  border-radius: 0 8px 8px 0;
+  transform: translateY(-50%);
 }
 
 .sidebar-toggle:hover {
   background: var(--hover-bg);
-}
-
-.sidebar-toggle.collapsed svg {
-  transform: rotate(180deg);
 }
 
 .sidebar-toggle svg {
@@ -238,6 +244,10 @@ onUnmounted(() => {
   height: 16px;
   color: var(--text-primary-color);
   transition: transform 0.3s ease;
+}
+
+.sidebar-toggle.collapsed svg {
+  transform: rotate(180deg);
 }
 
 .sidebar-resizer {
@@ -279,6 +289,7 @@ onUnmounted(() => {
   font-size: 14px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s;
   border-bottom: 2px solid transparent;

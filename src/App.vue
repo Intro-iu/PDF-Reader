@@ -318,6 +318,7 @@ body, html {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .pdf-viewer-section {

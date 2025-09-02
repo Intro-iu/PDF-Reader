@@ -334,6 +334,17 @@ watch(() => [props.messages, props.isThinking], () => {
   line-height: 1.4;
   outline: none;
   transition: border-color 0.2s;
+  overflow-y: auto;
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+.chat-input::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-input {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 .chat-input:focus {

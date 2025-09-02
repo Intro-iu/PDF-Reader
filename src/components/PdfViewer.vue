@@ -138,6 +138,7 @@ const loadPdf = async (file: File) => {
     // 加载 PDF 目录
     try {
       const outline = await loadPdfOutline(pdfDocument.doc)
+      console.log('PDF目录解析结果:', outline)
       emit('outline-loaded', outline)
     } catch (outlineError) {
       console.warn('加载 PDF 目录失败:', outlineError)

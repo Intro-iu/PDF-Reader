@@ -282,8 +282,14 @@ const handleChatFromMenu = (text: string) => {
 
 // 目录相关处理函数
 const handleOutlineLoaded = (outline: OutlineItem[]) => {
+  console.log('App.vue 收到目录数据:', outline)
   pdfOutline.value = outline
-  console.log('PDF目录加载完成:', outline)
+  if (outline.length > 0) {
+    console.log('PDF目录加载完成，共', outline.length, '个顶级项目')
+    console.log('第一个目录项:', outline[0])
+  } else {
+    console.log('该PDF没有目录或目录为空')
+  }
 }
 
 const handleGoToPage = (page: number) => {

@@ -53,3 +53,10 @@ export interface TranslationState {
   autoTranslate: boolean;
   error: string | null;
 }
+
+export interface OutlineItem {
+  title: string;
+  page: number;
+  level: number;
+  children?: OutlineItem[];
+}

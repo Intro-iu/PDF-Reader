@@ -104,6 +104,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { PdfManager } from '@/utils/pdf'
+import type { OutlineItem } from '@/types'
 
 const props = defineProps<{
   file: File | null
@@ -116,6 +117,7 @@ const emit = defineEmits<{
   'error': [string]
   'translate-text': [string]
   'chat-with-text': [string]
+  'outline-loaded': [OutlineItem[]]
 }>()
 
 // PDF 相关
@@ -155,6 +157,16 @@ const loadPdf = async (file: File) => {
     currentPage.value = 1
     
     emit('pdf-loaded', { totalPages: pdfDocument.numPages })
+    
+    // 加载 PDF 目录
+    try {
+      const outline = await loadPdfOutline(pdfDocument.doc)
+      console.log('PDF目录解析结果:', outline)
+      emit('outline-loaded', outline)
+    } catch (outlineError) {
+      console.warn('加载 PDF 目录失败:', outlineError)
+      emit('outline-loaded', []) // 发送空数组表示没有目录
+    }
     
     // 等待 DOM 更新，确保 pdf-pages 容器已经渲染
     await nextTick()
@@ -323,6 +335,62 @@ const goToPage = (pageNum: number) => {
   }
 }
 
+// 加载 PDF 目录
+const loadPdfOutline = async (pdfDocument: any): Promise<OutlineItem[]> => {
+  try {
+    const outline = await pdfDocument.getOutline()
+    if (!outline || outline.length === 0) {
+      return []
+    }
+    
+    const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
+      let pageNum = 1
+      
+      // 尝试获取目标页面
+      if (item.dest) {
+        try {
+          const dest = await pdfDocument.getDestination(item.dest)
+          if (dest && dest[0]) {
+            const pageRef = dest[0]
+            const pageIndex = await pdfDocument.getPageIndex(pageRef)
+            pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
+          }
+        } catch (err) {
+          console.warn('无法获取目录项页面:', err)
+        }
+      }
+      
+      const outlineItem: OutlineItem = {
+        title: item.title || '无标题',
+        page: pageNum,
+        level
+      }
+      
+      // 递归处理子项
+      if (item.items && item.items.length > 0) {
+        outlineItem.children = []
+        for (const child of item.items) {
+          const childItem = await parseOutlineItem(child, level + 1)
+          outlineItem.children.push(childItem)
+        }
+      }
+      
+      return outlineItem
+    }
+    
+    const result: OutlineItem[] = []
+    for (const item of outline) {
+      const outlineItem = await parseOutlineItem(item)
+      result.push(outlineItem)
+    }
+    
+    return result
+  } catch (error) {
+    console.error('解析 PDF 目录失败:', error)
+    return []
+  }
+}
+
 const handlePageInput = (event: Event) => {
   const target = event.target as HTMLInputElement
   const pageNum = parseInt(target.value)
@@ -417,6 +485,11 @@ onUnmounted(() => {
   if (renderTimeout.value) {
     clearTimeout(renderTimeout.value)
   }
+})
+
+// 暴露给父组件的方法
+defineExpose({
+  goToPage
 })
 </script>
 

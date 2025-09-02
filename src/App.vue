@@ -117,10 +117,12 @@ const sidebarState = reactive({
 })
 
 // 事件处理函数
-const handleFileSelected = (file: File) => {
+const handleFileSelected = (file: File, filePath?: string) => {
   selectedFile.value = file
-  // 添加到PDF历史记录
-  addToPdfHistory(file)
+  
+  // 如果有文件路径（Tauri环境），使用真实路径；否则使用文件名
+  const path = filePath || file.name
+  addToPdfHistory(file.name, path)
 }
 
 const handlePdfLoaded = (info: { totalPages: number }) => {
@@ -284,17 +286,17 @@ const handleSidebarStateChanged = (isCollapsed: boolean, activeTab: string) => {
 }
 
 // PDF历史记录管理函数
-const addToPdfHistory = (file: File) => {
+const addToPdfHistory = (fileName: string, filePath: string) => {
   const historyItem: PdfHistoryItem = {
     id: `pdf_${Date.now()}`,
-    name: file.name,
-    path: file.name, // 在浏览器环境中，我们只能获取文件名
+    name: fileName,
+    path: filePath,
     openTime: Date.now()
   }
   
-  // 检查是否已存在（基于文件名和大小）
+  // 检查是否已存在（基于文件路径）
   const existingIndex = pdfHistory.value.findIndex(item => 
-    item.name === file.name
+    item.path === filePath
   )
   
   if (existingIndex >= 0) {
@@ -318,12 +320,95 @@ const addToPdfHistory = (file: File) => {
 
 const handleReopenPdf = async (item: PdfHistoryItem) => {
   try {
-    // 在浏览器环境中，我们无法直接重新打开文件
-    // 但我们可以提示用户或提供其他交互方式
-    console.log('请重新选择文件:', item.name)
-    // 这里可以添加文件选择器的逻辑
-  } catch (error) {
-    console.error('重新打开PDF失败:', error)
+    if (window.__TAURI_INTERNALS__ && item.path !== item.name) {
+      // Tauri环境且有真实文件路径
+      const { readFile } = await import('@tauri-apps/plugin-fs')
+      
+      try {
+        // 直接通过路径读取文件
+        const fileData = await readFile(item.path)
+        
+        // 创建File对象
+        const file = new File([fileData], item.name, { type: 'application/pdf' })
+        selectedFile.value = file
+        
+        // 更新历史记录时间并移到最前面
+        item.openTime = Date.now()
+        const index = pdfHistory.value.findIndex(h => h.id === item.id)
+        if (index > 0) {
+          pdfHistory.value.splice(index, 1)
+          pdfHistory.value.unshift(item)
+          savePdfHistory()
+        }
+        
+        console.log('成功重新打开PDF:', item.name)
+        
+      } catch (fileErr) {
+        // 文件可能已被移动或删除，提示用户
+        const retry = confirm(`无法找到文件: ${item.path}\n\n文件可能已被移动或删除。是否要选择新的文件位置？`)
+        if (retry) {
+          // 打开文件选择器让用户重新选择
+          const { open } = await import('@tauri-apps/plugin-dialog')
+          const selected = await open({
+            multiple: false,
+            filters: [{
+              name: 'PDF文件',
+              extensions: ['pdf']
+            }],
+            defaultPath: item.path
+          })
+          
+          if (selected) {
+            const newPath = selected as string
+            const fileData = await readFile(newPath)
+            const file = new File([fileData], item.name, { type: 'application/pdf' })
+            selectedFile.value = file
+            
+            // 更新历史记录中的路径
+            item.path = newPath
+            item.openTime = Date.now()
+            const index = pdfHistory.value.findIndex(h => h.id === item.id)
+            if (index > 0) {
+              pdfHistory.value.splice(index, 1)
+              pdfHistory.value.unshift(item)
+            }
+            savePdfHistory()
+          }
+        }
+      }
+    } else {
+      // 浏览器环境或没有真实路径，提示用户选择文件
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.pdf'
+      input.style.display = 'none'
+      
+      const confirmed = confirm(`请选择文件: ${item.name}`)
+      if (!confirmed) return
+      
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          selectedFile.value = file
+          // 更新历史记录时间
+          item.openTime = Date.now()
+          const index = pdfHistory.value.findIndex(h => h.id === item.id)
+          if (index > 0) {
+            pdfHistory.value.splice(index, 1)
+            pdfHistory.value.unshift(item)
+            savePdfHistory()
+          }
+        }
+        document.body.removeChild(input)
+      }
+      
+      document.body.appendChild(input)
+      input.click()
+    }
+    
+  } catch (err) {
+    console.error('重新打开PDF失败:', err)
+    error.value = '重新打开PDF失败: ' + (err as Error).message
   }
 }
 

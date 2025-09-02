@@ -1,15 +1,17 @@
 <template>
   <div class="toolbar">
     <div class="toolbar-left">
-      <label for="file-input" class="custom-file-upload">
+      <button @click="selectFile" class="custom-file-upload">
         选择 PDF 文件
-      </label>
+      </button>
+      <!-- 保留隐藏的input作为浏览器环境的fallback -->
       <input 
         type="file" 
         id="file-input" 
         accept=".pdf" 
         @change="handleFileSelect"
         ref="fileInput"
+        style="display: none;"
       >
     </div>
     
@@ -48,7 +50,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'file-selected', file: File): void
+  (e: 'file-selected', file: File, filePath?: string): void
   (e: 'toggle-theme'): void
   (e: 'open-settings'): void
 }
@@ -57,6 +59,47 @@ defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const fileInput = ref<HTMLInputElement>()
+
+const selectFile = async () => {
+  // 检查是否在Tauri环境中
+  if (window.__TAURI_INTERNALS__) {
+    try {
+      // 动态导入Tauri APIs
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const { readFile } = await import('@tauri-apps/plugin-fs')
+      
+      // 使用Tauri的文件选择对话框
+      const selected = await open({
+        multiple: false,
+        filters: [{
+          name: 'PDF文件',
+          extensions: ['pdf']
+        }]
+      })
+      
+      if (selected) {
+        const filePath = selected as string
+        const fileName = filePath.split(/[/\\]/).pop() || 'unknown.pdf'
+        
+        // 读取文件内容
+        const fileData = await readFile(filePath)
+        
+        // 创建File对象
+        const file = new File([fileData], fileName, { type: 'application/pdf' })
+        
+        // 发出事件，同时传递File对象和文件路径
+        emit('file-selected', file, filePath)
+      }
+    } catch (err) {
+      console.error('Tauri文件选择失败，回退到浏览器方式:', err)
+      // 回退到浏览器的文件选择器
+      fileInput.value?.click()
+    }
+  } else {
+    // 浏览器环境，使用标准的文件输入
+    fileInput.value?.click()
+  }
+}
 
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement

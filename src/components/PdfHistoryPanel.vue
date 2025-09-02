@@ -25,12 +25,17 @@
         <small>打开的PDF文件会自动保存在这里</small>
       </div>
 
-      <div v-else class="history-list">
+      <div v-else>
+        <div class="history-tip">
+          <small>💡 点击历史记录可重新打开对应的PDF文件</small>
+        </div>
+        <div class="history-list">
         <div 
           v-for="item in pdfHistory" 
           :key="item.id"
           class="history-item pdf-item"
           @click="reopenPdf(item)"
+          title="点击重新打开此PDF文件"
         >
           <div class="item-header">
             <div class="item-type">
@@ -58,6 +63,7 @@
             </div>
           </div>
           <div v-if="item.path" class="item-path">{{ item.path }}</div>
+        </div>
         </div>
       </div>
     </div>
@@ -210,6 +216,19 @@ const formatTime = (timestamp: number) => {
 .empty-history small {
   font-size: 14px;
   opacity: 0.8;
+}
+
+.history-tip {
+  padding: 8px 16px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  margin: 8px;
+  border-left: 3px solid var(--primary-color);
+}
+
+.history-tip small {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .history-list {

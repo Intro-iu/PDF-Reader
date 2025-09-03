@@ -58,5 +58,6 @@ export interface OutlineItem {
   title: string;
   page: number;
   level: number;
+  id?: string; // 智能生成目录的唯一标识
   children?: OutlineItem[];
 }

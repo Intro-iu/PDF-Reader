@@ -394,55 +394,87 @@ const goToPage = (pageNum: number) => {
 // 加载 PDF 目录
 const loadPdfOutline = async (pdfDocument: any): Promise<OutlineItem[]> => {
   try {
+    // 1. 首先尝试获取内嵌目录
     const outline = await pdfDocument.getOutline()
-    if (!outline || outline.length === 0) {
-      return []
+    if (outline && outline.length > 0) {
+      console.log('找到内嵌目录，解析中...')
+      return await parseEmbeddedOutline(outline, pdfDocument)
     }
     
-    const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
-      let pageNum = 1
-      
-      // 尝试获取目标页面
-      if (item.dest) {
-        try {
-          const dest = await pdfDocument.getDestination(item.dest)
-          if (dest && dest[0]) {
-            const pageRef = dest[0]
-            const pageIndex = await pdfDocument.getPageIndex(pageRef)
-            pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
-          }
-        } catch (err) {
-          console.warn('无法获取目录项页面:', err)
-        }
-      }
-      
-      const outlineItem: OutlineItem = {
-        title: item.title || '无标题',
-        page: pageNum,
-        level
-      }
-      
-      // 递归处理子项
-      if (item.items && item.items.length > 0) {
-        outlineItem.children = []
-        for (const child of item.items) {
-          const childItem = await parseOutlineItem(child, level + 1)
-          outlineItem.children.push(childItem)
-        }
-      }
-      
-      return outlineItem
-    }
+    // 2. 如果没有内嵌目录，返回空数组，不自动生成智能目录
+    console.log('未找到内嵌目录')
+    return []
     
-    const result: OutlineItem[] = []
-    for (const item of outline) {
-      const outlineItem = await parseOutlineItem(item)
-      result.push(outlineItem)
-    }
-    
-    return result
   } catch (error) {
     console.error('解析 PDF 目录失败:', error)
+    return []
+  }
+}
+
+// 解析内嵌目录
+const parseEmbeddedOutline = async (outline: any[], pdfDocument: any): Promise<OutlineItem[]> => {
+  const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
+    let pageNum = 1
+    
+    // 尝试获取目标页面
+    if (item.dest) {
+      try {
+        const dest = await pdfDocument.getDestination(item.dest)
+        if (dest && dest[0]) {
+          const pageRef = dest[0]
+          const pageIndex = await pdfDocument.getPageIndex(pageRef)
+          pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
+        }
+      } catch (err) {
+        console.warn('无法获取目录项页面:', err)
+      }
+    }
+    
+    const outlineItem: OutlineItem = {
+      title: item.title || '无标题',
+      page: pageNum,
+      level
+    }
+    
+    // 递归处理子项
+    if (item.items && item.items.length > 0) {
+      outlineItem.children = []
+      for (const child of item.items) {
+        const childItem = await parseOutlineItem(child, level + 1)
+        outlineItem.children.push(childItem)
+      }
+    }
+    
+    return outlineItem
+  }
+  
+  const result: OutlineItem[] = []
+  for (const item of outline) {
+    const outlineItem = await parseOutlineItem(item)
+    result.push(outlineItem)
+  }
+  
+  return result
+}
+
+// 智能生成目录
+const generateSmartOutlineItems = async (): Promise<OutlineItem[]> => {
+  try {
+    const smartOutline = await pdfManager.generateSmartOutline()
+    
+    // 转换为 OutlineItem 格式
+    const outlineItems: OutlineItem[] = smartOutline.map(item => ({
+      title: item.title,
+      page: item.page,
+      level: item.level,
+      id: item.id
+    }))
+    
+    console.log(`智能目录生成完成: ${outlineItems.length} 项`)
+    return outlineItems
+    
+  } catch (error) {
+    console.error('智能目录生成失败:', error)
     return []
   }
 }
@@ -557,7 +589,8 @@ onUnmounted(() => {
 
 // 暴露给父组件的方法
 defineExpose({
-  goToPage
+  goToPage,
+  generateSmartOutline: generateSmartOutlineItems
 })
 </script>
 

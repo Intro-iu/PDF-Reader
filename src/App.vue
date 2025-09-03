@@ -18,9 +18,11 @@
           :current-page="pdfViewerState.currentPage"
           :is-collapsed="outlineSidebarCollapsed"
           :width="outlineSidebarWidth"
+          :has-pdf-file="!!selectedFile"
           @go-to-page="handleGoToPage"
           @toggle-collapse="handleOutlineToggle"
           @width-changed="handleOutlineWidthChanged"
+          @generate-smart-outline="handleGenerateSmartOutline"
         />
 
         <!-- PDF 查看器 -->
@@ -325,6 +327,28 @@ const handleOutlineWidthChanged = (width: number) => {
   outlineSidebarWidth.value = width
   // 保存宽度到本地存储
   localStorage.setItem('outline-sidebar-width', width.toString())
+}
+
+const handleGenerateSmartOutline = async () => {
+  if (!selectedFile.value || !pdfViewerRef.value) {
+    setError('请先打开PDF文件')
+    return
+  }
+
+  try {
+    // 通过PDF查看器组件调用智能目录生成
+    const smartOutline = await pdfViewerRef.value.generateSmartOutline()
+    if (smartOutline && smartOutline.length > 0) {
+      pdfOutline.value = smartOutline
+      // 展开目录侧栏以显示生成的目录
+      outlineSidebarCollapsed.value = false
+    } else {
+      setError('未能生成智能目录，请检查PDF内容结构')
+    }
+  } catch (error) {
+    console.error('智能目录生成失败:', error)
+    setError('智能目录生成失败: ' + (error as Error).message)
+  }
 }
 
 const handleSendMessage = async (message: string) => {

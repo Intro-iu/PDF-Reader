@@ -1,5 +1,6 @@
 '''<script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import { reactive, onMounted, watch, ref } from 'vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 
@@ -100,6 +101,31 @@ async function saveSettings(isManual = false) {
     } catch (error) {
         console.error('保存配置到后端失败:', error);
         showNotification('保存配置失败', 'error');
+    }
+}
+
+async function exportSettings() {
+    try {
+        // 打开文件保存对话框
+        const filePath = await save({
+            filters: [{
+                name: 'JSON配置文件',
+                extensions: ['json']
+            }],
+            defaultPath: 'pdf-reader-config.json'
+        });
+
+        if (filePath) {
+            // 导出配置到指定文件
+            await invoke('export_config_to_file', { 
+                filePath: filePath,
+                config: JSON.parse(JSON.stringify(settings))
+            });
+            showNotification('配置已导出到文件', 'success');
+        }
+    } catch (error) {
+        console.error('导出配置文件失败:', error);
+        showNotification('导出配置文件失败', 'error');
     }
 }
 
@@ -208,13 +234,44 @@ function showNotification(message: string, type = 'info') {
 
 // --- 文件导入/导出 (现在通过Tauri后端处理，前端只触发) ---
 async function importConfig() {
-    showImportConfirmDialog.value = true;
+    try {
+        // 打开文件选择对话框
+        const selected = await open({
+            multiple: false,
+            filters: [{
+                name: 'JSON配置文件',
+                extensions: ['json']
+            }]
+        });
+
+        if (selected && typeof selected === 'string') {
+            // 用户选择了文件，显示确认对话框
+            showImportConfirmDialog.value = true;
+            selectedConfigFile.value = selected;
+        }
+    } catch (error) {
+        console.error('打开文件选择对话框失败:', error);
+        showNotification('打开文件选择对话框失败', 'error');
+    }
 }
 
+const selectedConfigFile = ref<string>('');
+
 async function confirmImportConfig() {
-    await loadSettings();
-    showNotification('配置已从文件加载', 'success');
-    showImportConfirmDialog.value = false;
+    try {
+        if (selectedConfigFile.value) {
+            // 调用后端API导入指定文件的配置
+            await invoke('import_config_from_file', { filePath: selectedConfigFile.value });
+            await loadSettings();
+            showNotification('配置已从文件加载', 'success');
+        }
+    } catch (error) {
+        console.error('导入配置文件失败:', error);
+        showNotification('导入配置文件失败', 'error');
+    } finally {
+        showImportConfirmDialog.value = false;
+        selectedConfigFile.value = '';
+    }
 }
 
 function cancelImportConfig() {
@@ -376,10 +433,14 @@ function cancelImportConfig() {
                     <div class="settings-actions">
                         <button id="settings-reset" class="btn-secondary" @click="resetSettings">重置设置</button>
                         <button id="import-config" class="btn-secondary" @click="importConfig">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M12,11L16,15L14.6,16.4L13,14.8V20H11V14.8L9.4,16.4L8,15L12,11Z"/></svg>
                             从文件加载
                         </button>
-                        <button id="settings-save" class="btn-primary" @click="saveSettings(true)">保存设置到文件</button>
+                        <button id="settings-save" class="btn-primary" @click="saveSettings(true)">保存配置</button>
+                        <button id="export-config" class="btn-primary" @click="exportSettings">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M12,19L8,15L9.4,13.6L11,15.2V10H13V15.2L14.6,13.6L16,15L12,19Z"/></svg>
+                            导出配置到文件
+                        </button>
                     </div>
                 </div>
             </div>
@@ -436,8 +497,8 @@ function cancelImportConfig() {
             <ConfirmDialog
                 v-model:show="showImportConfirmDialog"
                 title="确认导入配置"
-                message="这将覆盖当前设置，确定要从文件加载配置吗？"
-                warning="当前的设置将被替换！"
+                :message="`确定要从以下文件导入配置吗？\n\n${selectedConfigFile}`"
+                warning="当前的设置将被完全替换！"
                 confirm-text="导入"
                 :is-danger="true"
                 @confirm="confirmImportConfig"
@@ -819,8 +880,9 @@ input[type="range"]::-webkit-slider-thumb {
 .settings-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
     padding: 24px 0;
+    flex-wrap: wrap;
 }
 .btn-primary, .btn-secondary, .btn-confirm {
     padding: 10px 20px;

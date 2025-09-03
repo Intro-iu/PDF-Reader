@@ -20,6 +20,8 @@ pub fn run() {
       config::set_config,
       config::config_file_exists,
       config::init_config,
+      config::import_config_from_file,
+      config::export_config_to_file,
       config::get_pdf_history,
       config::set_pdf_history,
       config::init_pdf_history

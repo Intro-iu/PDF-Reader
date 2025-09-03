@@ -205,6 +205,59 @@ pub fn init_config(app_handle: AppHandle) -> AppConfig {
     config
 }
 
+// Tauri 命令：从指定文件导入配置
+#[tauri::command]
+pub fn import_config_from_file(app_handle: AppHandle, file_path: String) -> Result<AppConfig, String> {
+    let path = PathBuf::from(file_path);
+    
+    if !path.exists() {
+        return Err("配置文件不存在".to_string());
+    }
+
+    let mut file = File::open(&path)
+        .map_err(|e| format!("无法打开配置文件: {}", e))?;
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .map_err(|e| format!("无法读取配置文件: {}", e))?;
+
+    let imported_config: AppConfig = serde_json::from_str(&contents)
+        .map_err(|e| format!("配置文件格式错误: {}", e))?;
+
+    // 保存导入的配置到应用的配置文件
+    if let Err(e) = write_config(&app_handle, imported_config.clone()) {
+        return Err(format!("保存配置失败: {}", e));
+    }
+
+    Ok(imported_config)
+}
+
+// Tauri 命令：导出配置到指定文件
+#[tauri::command]
+pub fn export_config_to_file(app_handle: AppHandle, file_path: String, config: AppConfig) -> Result<(), String> {
+    let path = PathBuf::from(file_path);
+    
+    // 确保目录存在
+    if let Some(parent_dir) = path.parent() {
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir)
+                .map_err(|e| format!("无法创建目录: {}", e))?;
+        }
+    }
+
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("序列化配置失败: {}", e))?;
+
+    let mut file = File::create(&path)
+        .map_err(|e| format!("无法创建文件: {}", e))?;
+
+    file.write_all(json_string.as_bytes())
+        .map_err(|e| format!("写入文件失败: {}", e))?;
+
+    println!("配置已导出到: {:?}", path);
+    Ok(())
+}
+
 // PDF 历史记录相关函数
 fn read_pdf_history(app_handle: &AppHandle) -> PdfHistoryData {
     let history_path = get_pdf_history_path(app_handle);

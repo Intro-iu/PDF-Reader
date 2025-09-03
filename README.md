@@ -162,12 +162,32 @@ npm run tauri:build
 
 ### Linux 依赖安装
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian 22.04+
 sudo apt-get update
-sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+sudo apt-get install -y \
+  libwebkit2gtk-4.0-dev \
+  libwebkit2gtk-4.1-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  patchelf \
+  libjavascriptcoregtk-4.1-dev \
+  libsoup-3.0-dev \
+  libgtk-3-dev
 
-# Fedora/CentOS
-sudo dnf install webkit2gtk4.0-devel libappindicator-gtk3-devel librsvg2-devel patchelf
+# Ubuntu/Debian 20.04 (旧版本)
+sudo apt-get update
+sudo apt-get install -y \
+  libwebkit2gtk-4.0-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  patchelf
+
+# Fedora/CentOS/RHEL
+sudo dnf install \
+  webkit2gtk4.0-devel \
+  libappindicator-gtk3-devel \
+  librsvg2-devel \
+  patchelf
 ```
 
 ## 📦 打包与分发

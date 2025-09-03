@@ -15,6 +15,9 @@ dist-ssr
 # Configuration files (contains sensitive data)
 config.json
 
+# PDF history file (user-specific data)
+pdf-history.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

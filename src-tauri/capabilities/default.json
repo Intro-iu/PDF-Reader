@@ -7,8 +7,28 @@
   ],
   "permissions": [
     "core:default",
+    "core:path:default",
     "fs:allow-read-file",
     "fs:allow-read-dir",
+    "fs:allow-exists",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    "fs:allow-create",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-appdata-read",
+    "fs:allow-appdata-write",
+    "fs:scope-app-recursive",
+    {
+      "identifier": "fs:scope-app-index",
+      "allow": [
+        {
+          "path": "$APP/../**"
+        }
+      ]
+    },
     "dialog:allow-open",
     "dialog:default"
   ]

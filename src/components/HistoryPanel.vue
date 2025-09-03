@@ -39,7 +39,7 @@
                 <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
               </svg>
               <span>{{ item.type === 'translation' ? '翻译' : '聊天' }}</span>
-              <span v-if="item.targetLang" class="target-lang">→ {{ getLanguageName(item.targetLang) }}</span>
+              <span v-if="item.type === 'translation' && item.targetLang" class="target-lang">→ {{ getLanguageName(item.targetLang) }}</span>
             </div>
             <div class="item-time">{{ formatTime(item.timestamp) }}</div>
           </div>
@@ -83,15 +83,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { HistoryItem } from '@/types'
+import type { ActivityHistoryItem } from '@/types'
 
 interface Props {
-  historyItems: HistoryItem[]
+  historyItems: ActivityHistoryItem[]
 }
 
 interface Emits {
-  (e: 'reuse-translation', item: HistoryItem): void
-  (e: 'reuse-chat', item: HistoryItem): void
+  (e: 'reuse-translation', item: ActivityHistoryItem): void
+  (e: 'reuse-chat', item: ActivityHistoryItem): void
   (e: 'delete-item', id: string): void
   (e: 'clear-history'): void
 }
@@ -145,7 +145,7 @@ const getLanguageName = (langCode: string) => {
   return langMap[langCode] || langCode
 }
 
-const reuseItem = (item: HistoryItem) => {
+const reuseItem = (item: ActivityHistoryItem) => {
   if (item.type === 'translation') {
     emit('reuse-translation', item)
   } else {

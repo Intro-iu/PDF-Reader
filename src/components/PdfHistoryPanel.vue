@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { ref } from 'vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 
 interface PdfHistoryItem {

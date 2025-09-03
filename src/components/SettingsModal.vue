@@ -177,14 +177,6 @@ function updateThemeIcons() {
     }
 }
 
-function applyTheme(theme: string) {
-    document.body.classList.toggle('light-mode', theme === 'light');
-    if (themeIconLight.value && themeIconDark.value) {
-        themeIconLight.value.style.display = theme === 'light' ? 'block' : 'none';
-        themeIconDark.value.style.display = theme === 'dark' ? 'block' : 'none';
-    }
-}
-
 function toggleTheme() {
     emit('toggle-theme');
 }
@@ -215,12 +207,6 @@ function showNotification(message: string, type = 'info') {
 }
 
 // --- 文件导入/导出 (现在通过Tauri后端处理，前端只触发) ---
-async function exportConfig() {
-    // 导出功能现在是直接保存到应用配置目录，而不是下载文件
-    await saveSettings(true);
-    showNotification('配置已保存到应用目录', 'success');
-}
-
 async function importConfig() {
     showImportConfirmDialog.value = true;
 }
@@ -291,14 +277,14 @@ function cancelImportConfig() {
                                         </button>
                                     </div>
                                     <div class="ai-model-fields">
-                                        <div class="ai-model-field"><label>模型名称</label><input type="text" :value="model.name" @change="updateAiModelField(model.id, 'name', $event.target.value)"></div>
-                                        <div class="ai-model-field"><label>模型标识</label><input type="text" :value="model.modelId" placeholder="如: gpt-3.5-turbo" @change="updateAiModelField(model.id, 'modelId', $event.target.value)"></div>
-                                        <div class="ai-model-field full-width"><label>API 端点</label><input type="url" :value="model.apiEndpoint" placeholder="https://api.example.com" @change="updateAiModelField(model.id, 'apiEndpoint', $event.target.value)"></div>
-                                        <div class="ai-model-field full-width"><label>API 密钥</label><input type="password" :value="model.apiKey" placeholder="输入API密钥" @change="updateAiModelField(model.id, 'apiKey', $event.target.value)"></div>
+                                        <div class="ai-model-field"><label>模型名称</label><input type="text" :value="model.name" @change="updateAiModelField(model.id, 'name', ($event.target as HTMLInputElement)?.value || '')"></div>
+                                        <div class="ai-model-field"><label>模型标识</label><input type="text" :value="model.modelId" placeholder="如: gpt-3.5-turbo" @change="updateAiModelField(model.id, 'modelId', ($event.target as HTMLInputElement)?.value || '')"></div>
+                                        <div class="ai-model-field full-width"><label>API 端点</label><input type="url" :value="model.apiEndpoint" placeholder="https://api.example.com" @change="updateAiModelField(model.id, 'apiEndpoint', ($event.target as HTMLInputElement)?.value || '')"></div>
+                                        <div class="ai-model-field full-width"><label>API 密钥</label><input type="password" :value="model.apiKey" placeholder="输入API密钥" @change="updateAiModelField(model.id, 'apiKey', ($event.target as HTMLInputElement)?.value || '')"></div>
                                     </div>
                                     <div class="ai-model-capabilities">
-                                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsChat" @change="updateAiModelField(model.id, 'supportsChat', $event.target.checked)"> 支持对话</label>
-                                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsTranslation" @change="updateAiModelField(model.id, 'supportsTranslation', $event.target.checked)"> 支持翻译</label>
+                                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsChat" @change="updateAiModelField(model.id, 'supportsChat', ($event.target as HTMLInputElement)?.checked || false)"> 支持对话</label>
+                                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsTranslation" @change="updateAiModelField(model.id, 'supportsTranslation', ($event.target as HTMLInputElement)?.checked || false)"> 支持翻译</label>
                                     </div>
                                 </div>
                             </div>

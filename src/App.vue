@@ -121,12 +121,10 @@ import type { PdfHistoryItem } from './utils/pdfHistory'
 // 响应式状态
 const theme = ref<Theme>('dark')
 const selectedFile = ref<File | null>(null)
-const currentPdf = ref<string | null>(null)
 const pdfViewerRef = ref()
-const isCanvasReady = ref(false)
 const showSettings = ref(false)
 const error = ref<string | null>(null)
-const errorTimer = ref<NodeJS.Timeout | null>(null)
+const errorTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isChatThinking = ref(false)
 const isAppReady = ref(false) // 应用是否完全初始化完成
 
@@ -198,7 +196,7 @@ const handlePdfLoaded = (info: { totalPages: number }) => {
     const currentPdf = pdfHistory.value[0]
     if (currentPdf && currentPdf.name === selectedFile.value.name) {
       currentPdf.totalPages = info.totalPages
-      savePdfHistory()
+      pdfHistoryManager.saveHistory(pdfHistory.value)
     }
   }
 }
@@ -286,18 +284,29 @@ const handleChatFromMenu = (text: string) => {
   handleSendMessage(chatInput)
 }
 
-// 目录相关处理函数
+// 处理 PDF 轮廓加载
 const handleOutlineLoaded = (outline: OutlineItem[]) => {
-  console.log('App.vue 收到目录数据:', outline)
-  pdfOutline.value = outline
-  if (outline.length > 0) {
-    console.log('PDF目录加载完成，共', outline.length, '个顶级项目')
-    console.log('第一个目录项:', outline[0])
+  // 为每个轮廓项添加 id（如果没有的话）
+  const processOutline = (items: OutlineItem[]): OutlineItem[] => {
+    return items.map((item, index) => ({
+      ...item,
+      id: item.id || `outline-${index}-${Date.now()}`,
+      children: (item as any).children ? processOutline((item as any).children) : undefined
+    }))
+  }
+  
+  const processedOutline = processOutline(outline)
+  console.log('App.vue 收到目录数据:', processedOutline)
+  pdfOutline.value = processedOutline
+  if (processedOutline.length > 0) {
+    console.log('PDF目录加载完成，共', processedOutline.length, '个顶级项目')
+    console.log('第一个目录项:', processedOutline[0])
   } else {
     console.log('该PDF没有目录或目录为空')
   }
 }
 
+// 目录相关处理函数
 const handleGoToPage = (page: number) => {
   // 通过 ref 调用 PdfViewer 的 goToPage 方法
   if (pdfViewerRef.value && typeof pdfViewerRef.value.goToPage === 'function') {
@@ -466,7 +475,7 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
         if (index > 0) {
           pdfHistory.value.splice(index, 1)
           pdfHistory.value.unshift(item)
-          savePdfHistory()
+          pdfHistoryManager.saveHistory(pdfHistory.value)
         }
         
         console.log('成功重新打开PDF:', item.name)
@@ -567,7 +576,7 @@ const handleRetryConfirm = async () => {
         pdfHistory.value.splice(index, 1)
         pdfHistory.value.unshift(item)
       }
-      savePdfHistory()
+      pdfHistoryManager.saveHistory(pdfHistory.value)
     }
   } catch (error) {
     console.error('重新选择文件失败:', error)
@@ -598,7 +607,7 @@ const handleFileSelectConfirm = () => {
       if (index > 0) {
         pdfHistory.value.splice(index, 1)
         pdfHistory.value.unshift(item)
-        savePdfHistory()
+        pdfHistoryManager.saveHistory(pdfHistory.value)
       }
     }
   }

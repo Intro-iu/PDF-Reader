@@ -58,6 +58,32 @@ export interface OutlineItem {
   title: string;
   page: number;
   level: number;
-  id?: string; // 智能生成目录的唯一标识
+  id: string; // 智能生成目录的唯一标识，必需字段
   children?: OutlineItem[];
 }
+
+export interface HistoryItem {
+  path: string;
+  name: string;
+  lastOpened: string;
+  page?: number;
+}
+
+export interface TranslationHistoryItem {
+  id: string;
+  type: 'translation';
+  originalText: string;
+  result: string;
+  targetLang: string;
+  timestamp: number;
+}
+
+export interface ChatHistoryItem {
+  id: string;
+  type: 'chat';
+  originalText: string;
+  result: string;
+  timestamp: number;
+}
+
+export type ActivityHistoryItem = TranslationHistoryItem | ChatHistoryItem;

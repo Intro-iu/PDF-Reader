@@ -125,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { PdfManager } from '@/utils/pdf'
 import type { OutlineItem } from '@/types'
 
@@ -158,7 +158,7 @@ const error = ref<string | null>(null)
 
 // 缩放相关变量
 const isRendering = ref(false)
-const renderTimeout = ref<NodeJS.Timeout | null>(null)
+const renderTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // 右键菜单相关
 const contextMenu = reactive({
@@ -203,7 +203,7 @@ const loadPdf = async (file: File) => {
   } catch (err: any) {
     console.error('PDF loading error:', err)
     error.value = err.message || '加载 PDF 失败'
-    emit('error', error.value)
+    // emit('error', error.value)
   } finally {
     isLoading.value = false
   }
@@ -431,6 +431,7 @@ const parseEmbeddedOutline = async (outline: any[], pdfDocument: any): Promise<O
     }
     
     const outlineItem: OutlineItem = {
+      id: `outline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: item.title || '无标题',
       page: pageNum,
       level

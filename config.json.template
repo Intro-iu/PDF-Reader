@@ -1,0 +1,31 @@
+{
+  "aiModels": [
+    {
+      "name": "示例模型名称",
+      "type": "chat",
+      "provider": "openai",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "YOUR_API_KEY_HERE",
+      "model": "gpt-3.5-turbo",
+      "enabled": true
+    },
+    {
+      "name": "示例翻译模型",
+      "type": "translate",
+      "provider": "openai",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "YOUR_API_KEY_HERE",
+      "model": "gpt-3.5-turbo",
+      "enabled": true
+    }
+  ],
+  "activeChatModel": "",
+  "activeTranslateModel": "",
+  "translateTargetLang": "zh",
+  "autoSaveSettings": true,
+  "enableSelectionTranslation": true,
+  "textSelectionColor": "#007bff",
+  "selectionOpacity": 30,
+  "chatPrompt": "你是一个专业的学术论文阅读助手。",
+  "translationPrompt": "Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]"
+}

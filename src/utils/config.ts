@@ -21,10 +21,12 @@ class ConfigManager {
       return;
     }
     try {
-      this.config = await invoke<AppConfig>('get_config');
+      // 使用新的 init_config 命令，确保配置文件存在
+      this.config = await invoke<AppConfig>('init_config');
       this.isInitialized = true;
+      console.log('配置文件加载/创建成功');
     } catch (error) {
-      console.error('Failed to load config from backend, using default:', error);
+      console.error('Failed to load/create config, using default:', error);
       this.config = this.getDefaultConfig();
       this.isInitialized = true;
     }
@@ -52,6 +54,7 @@ class ConfigManager {
     }
     try {
       await invoke('set_config', { config: this.config });
+      console.log('配置文件保存成功');
     } catch (error) {
       console.error('Failed to save config to backend:', error);
     }

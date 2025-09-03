@@ -113,15 +113,10 @@ import OutlineSidebar from './components/OutlineSidebar.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
 import { applyCSSVariables } from './utils/init'
+import { normalizePath, getPlatformInfo } from './utils/platform'
+import { pdfHistoryManager } from './utils/pdfHistory'
 import type { Theme, PdfViewerState, TranslationState, ChatMessage } from './types'
-
-interface PdfHistoryItem {
-  id: string
-  name: string
-  path: string
-  openTime: number
-  totalPages?: number
-}
+import type { PdfHistoryItem } from './utils/pdfHistory'
 
 // 响应式状态
 const theme = ref<Theme>('dark')
@@ -182,8 +177,6 @@ const sidebarState = reactive({
 })
 
 // 工具函数
-import { normalizePath, getPlatformInfo } from './utils/platform'
-
 const platformInfo = getPlatformInfo()
 console.log(`运行在 ${platformInfo.name} 平台，${platformInfo.isTauri ? 'Tauri' : 'Web'} 环境`)
 
@@ -420,8 +413,7 @@ const handleSidebarStateChanged = (isCollapsed: boolean, activeTab: string) => {
 }
 
 // PDF历史记录管理函数
-const addToPdfHistory = (fileName: string, filePath: string) => {
-  // 将反斜杠转换为正斜杠格式
+const addToPdfHistory = async (fileName: string, filePath: string) => {
   const normalizedPath = normalizePath(filePath)
   
   const historyItem: PdfHistoryItem = {
@@ -431,28 +423,13 @@ const addToPdfHistory = (fileName: string, filePath: string) => {
     openTime: Date.now()
   }
   
-  // 检查是否已存在（基于文件路径）
-  const existingIndex = pdfHistory.value.findIndex(item => 
-    item.path === normalizedPath
-  )
-  
-  if (existingIndex >= 0) {
-    // 如果已存在，更新时间并移到最前
-    pdfHistory.value[existingIndex].openTime = Date.now()
-    const item = pdfHistory.value.splice(existingIndex, 1)[0]
-    pdfHistory.value.unshift(item)
-  } else {
-    // 添加新记录到开头
-    pdfHistory.value.unshift(historyItem)
+  try {
+    const updatedHistory = await pdfHistoryManager.addToHistory(historyItem, maxPdfHistory)
+    pdfHistory.value = updatedHistory
+    console.log('PDF添加到历史记录:', fileName)
+  } catch (error) {
+    console.error('添加PDF历史记录失败:', error)
   }
-  
-  // 限制历史记录数量
-  if (pdfHistory.value.length > maxPdfHistory) {
-    pdfHistory.value = pdfHistory.value.slice(0, maxPdfHistory)
-  }
-  
-  // 保存到本地存储
-  savePdfHistory()
 }
 
 const handleReopenPdf = async (item: PdfHistoryItem) => {
@@ -513,33 +490,31 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
   }
 }
 
-const deletePdfHistory = (id: string) => {
-  pdfHistory.value = pdfHistory.value.filter(item => item.id !== id)
-  savePdfHistory()
-}
-
-const clearPdfHistory = () => {
-  // 子组件已经确认过了，这里直接清空
-  console.log('清空PDF历史记录，当前记录数：', pdfHistory.value.length)
-  pdfHistory.value = []
-  savePdfHistory()
-  console.log('PDF历史记录已清空')
-}
-
-const savePdfHistory = () => {
+const deletePdfHistory = async (id: string) => {
   try {
-    localStorage.setItem('pdf-reader-pdf-history', JSON.stringify(pdfHistory.value))
+    const updatedHistory = await pdfHistoryManager.removeFromHistory(id)
+    pdfHistory.value = updatedHistory
+    console.log('PDF历史记录项已删除')
   } catch (error) {
-    console.error('保存PDF历史记录失败:', error)
+    console.error('删除PDF历史记录失败:', error)
   }
 }
 
-const loadPdfHistory = () => {
+const clearPdfHistory = async () => {
   try {
-    const saved = localStorage.getItem('pdf-reader-pdf-history')
-    if (saved) {
-      pdfHistory.value = JSON.parse(saved)
-    }
+    await pdfHistoryManager.clearHistory()
+    pdfHistory.value = []
+    console.log('PDF历史记录已清空')
+  } catch (error) {
+    console.error('清空PDF历史记录失败:', error)
+  }
+}
+
+const loadPdfHistory = async () => {
+  try {
+    const history = await pdfHistoryManager.loadHistory()
+    pdfHistory.value = history
+    console.log('PDF历史记录加载成功')
   } catch (error) {
     console.error('加载PDF历史记录失败:', error)
     pdfHistory.value = []
@@ -681,6 +656,10 @@ onMounted(async () => {
     await configManager.initialize()
     console.log('配置管理器初始化完成')
     
+    // 等待PDF历史记录管理器初始化完成
+    await pdfHistoryManager.initialize()
+    console.log('PDF历史记录管理器初始化完成')
+    
     // 从已初始化的 configManager 加载配置
     const config = configManager.getConfig()
     translationState.autoTranslate = config.enableSelectionTranslation
@@ -691,7 +670,7 @@ onMounted(async () => {
   }
   
   // 加载PDF历史记录
-  loadPdfHistory()
+  await loadPdfHistory()
   console.log('PDF历史记录加载完成')
   
   // 等待一小段时间确保所有组件都已渲染

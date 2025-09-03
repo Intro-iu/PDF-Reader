@@ -4,6 +4,29 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
+// PDF 历史记录项
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PdfHistoryItem {
+    id: String,
+    name: String,
+    path: String,
+    open_time: u64,
+    total_pages: Option<u32>,
+}
+
+// PDF 历史记录数据结构
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PdfHistoryData {
+    items: Vec<PdfHistoryItem>,
+}
+
+impl Default for PdfHistoryData {
+    fn default() -> Self {
+        Self { items: vec![] }
+    }
+}
+
 // AI模型配置
 // 使用 serde(rename_all = "camelCase") 来自动转换字段名
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,6 +76,27 @@ impl Default for AppConfig {
     }
 }
 
+// 获取PDF历史记录文件路径
+fn get_pdf_history_path(app_handle: &AppHandle) -> PathBuf {
+    if cfg!(debug_assertions) {
+        app_handle
+            .path()
+            .resource_dir()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("pdf-history.json")
+    } else {
+        let exe_path = std::env::current_exe().expect("Failed to get executable path");
+        let exe_dir = exe_path.parent().expect("Failed to get executable directory");
+        exe_dir.join("pdf-history.json")
+    }
+}
+
 // 获取配置文件路径
 fn get_config_path(app_handle: &AppHandle) -> PathBuf {
     // 在开发模式下，我们将配置文件放在项目根目录
@@ -79,22 +123,32 @@ fn get_config_path(app_handle: &AppHandle) -> PathBuf {
     }
 }
 
-// 从 config.json 读取配置
+// 从 config.json 读取配置，如果不存在则创建默认配置
 fn read_config(app_handle: &AppHandle) -> AppConfig {
     let config_path = get_config_path(app_handle);
+    
     if !config_path.exists() {
-        // 如果文件不存在，返回默认配置，但不立即创建文件
-        // 让前端决定是否需要创建默认配置
-        return AppConfig::default();
+        // 如果文件不存在，创建默认配置并保存
+        let default_config = AppConfig::default();
+        if let Err(e) = write_config(app_handle, default_config.clone()) {
+            eprintln!("Failed to create default config file: {}", e);
+        } else {
+            println!("Created default config file at: {:?}", config_path);
+        }
+        return default_config;
     }
 
-    let mut file = match File::open(config_path) {
+    let mut file = match File::open(&config_path) {
         Ok(file) => file,
-        Err(_) => return AppConfig::default(),
+        Err(e) => {
+            eprintln!("Failed to open config file: {}", e);
+            return AppConfig::default();
+        },
     };
 
     let mut contents = String::new();
-    if file.read_to_string(&mut contents).is_err() {
+    if let Err(e) = file.read_to_string(&mut contents) {
+        eprintln!("Failed to read config file: {}", e);
         return AppConfig::default();
     }
 
@@ -102,15 +156,25 @@ fn read_config(app_handle: &AppHandle) -> AppConfig {
     serde_json::from_str(&contents).unwrap_or_else(|_| AppConfig::default())
 }
 
-// 将配置写入 config.json
+// 将配置写入 config.json，确保目录存在
 fn write_config(app_handle: &AppHandle, config: AppConfig) -> Result<(), std::io::Error> {
     let config_path = get_config_path(app_handle);
-    let json_string =
-        serde_json::to_string_pretty(&config).expect("Failed to serialize config to JSON");
+    
+    // 确保父目录存在
+    if let Some(parent_dir) = config_path.parent() {
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir)?;
+        }
+    }
+    
+    let json_string = serde_json::to_string_pretty(&config)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
-    let mut file =
-        File::create(config_path).expect("Failed to create or open config file for writing");
-    file.write_all(json_string.as_bytes())
+    let mut file = File::create(&config_path)?;
+    file.write_all(json_string.as_bytes())?;
+    
+    println!("Config saved to: {:?}", config_path);
+    Ok(())
 }
 
 // Tauri 命令：获取配置
@@ -126,11 +190,86 @@ pub fn config_file_exists(app_handle: AppHandle) -> bool {
     config_path.exists()
 }
 
-// Tauri 命令：保存配置
+// Tauri 命令：保存配置，确保文件能被创建
 #[tauri::command]
-pub fn set_config(app_handle: AppHandle, config: AppConfig) {
-    if write_config(&app_handle, config).is_err() {
-        // 在实际应用中可能需要更好的错误处理
-        eprintln!("Failed to write config");
+pub fn set_config(app_handle: AppHandle, config: AppConfig) -> Result<(), String> {
+    write_config(&app_handle, config)
+        .map_err(|e| format!("Failed to write config: {}", e))
+}
+
+// Tauri 命令：初始化配置（确保配置文件存在）
+#[tauri::command]
+pub fn init_config(app_handle: AppHandle) -> AppConfig {
+    let config = read_config(&app_handle);
+    // read_config 已经会在文件不存在时自动创建
+    config
+}
+
+// PDF 历史记录相关函数
+fn read_pdf_history(app_handle: &AppHandle) -> PdfHistoryData {
+    let history_path = get_pdf_history_path(app_handle);
+    
+    if !history_path.exists() {
+        let default_history = PdfHistoryData::default();
+        if let Err(e) = write_pdf_history(app_handle, default_history.clone()) {
+            eprintln!("Failed to create default PDF history file: {}", e);
+        } else {
+            println!("Created default PDF history file at: {:?}", history_path);
+        }
+        return default_history;
     }
+
+    let mut file = match File::open(&history_path) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("Failed to open PDF history file: {}", e);
+            return PdfHistoryData::default();
+        },
+    };
+
+    let mut contents = String::new();
+    if let Err(e) = file.read_to_string(&mut contents) {
+        eprintln!("Failed to read PDF history file: {}", e);
+        return PdfHistoryData::default();
+    }
+
+    serde_json::from_str(&contents).unwrap_or_else(|_| PdfHistoryData::default())
+}
+
+fn write_pdf_history(app_handle: &AppHandle, history: PdfHistoryData) -> Result<(), std::io::Error> {
+    let history_path = get_pdf_history_path(app_handle);
+    
+    if let Some(parent_dir) = history_path.parent() {
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir)?;
+        }
+    }
+    
+    let json_string = serde_json::to_string_pretty(&history)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+    let mut file = File::create(&history_path)?;
+    file.write_all(json_string.as_bytes())?;
+    
+    println!("PDF history saved to: {:?}", history_path);
+    Ok(())
+}
+
+// Tauri 命令：获取PDF历史记录
+#[tauri::command]
+pub fn get_pdf_history(app_handle: AppHandle) -> PdfHistoryData {
+    read_pdf_history(&app_handle)
+}
+
+// Tauri 命令：保存PDF历史记录
+#[tauri::command]
+pub fn set_pdf_history(app_handle: AppHandle, history: PdfHistoryData) -> Result<(), String> {
+    write_pdf_history(&app_handle, history)
+        .map_err(|e| format!("Failed to write PDF history: {}", e))
+}
+
+// Tauri 命令：初始化PDF历史记录
+#[tauri::command]
+pub fn init_pdf_history(app_handle: AppHandle) -> PdfHistoryData {
+    read_pdf_history(&app_handle)
 }

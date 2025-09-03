@@ -28,38 +28,32 @@
         <button 
           @click="generateSmartOutline" 
           class="smart-generate-btn"
-          :disabled="isGenerating"
+          :disabled="isGenerating || !props.hasPdfFile"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="btn-icon">
             <path d="M9,4V6H21V4H9M9,14H21V12H9V14M9,20V18H21V20H9M5,6V4H3V6H1V8H3V10H5V8H7V6H5M5,14H7V12H5V10H3V12H1V14H3V16H5V14M5,18V16H3V18H1V20H3V22H5V20H7V18H5Z"/>
           </svg>
-          <span v-if="!isGenerating">智能生成目录</span>
-          <span v-else>生成中...</span>
+          <span v-if="!isGenerating && props.hasPdfFile">智能生成目录</span>
+          <span v-else-if="isGenerating">生成中...</span>
+          <span v-else>请先打开PDF文件</span>
         </button>
       </div>
 
       <div v-else class="outline-list">
-        <!-- 智能生成目录提示 -->
-        <div v-if="hasSmartOutline" class="smart-outline-tip">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
-          </svg>
-          <span>智能生成目录</span>
-        </div>
-        
         <div 
-          v-for="item in outlineItems" 
-          :key="item.id || `outline-${item.page}-${item.level}`"
+          v-for="(item, index) in outlineItems" 
+          :key="item.id || `outline-${index}-${item.page}-${item.level}`"
           class="outline-item"
           :class="{ 
-            'active': (item.id || `outline-${item.page}-${item.level}`) === activeItemId,
-            'smart-generated': !!item.id
+            'active': (item.id || `outline-${index}-${item.page}-${item.level}`) === activeItemId,
+            'smart-generated': !!item.id,
+            [`level-${item.level}`]: true
           }"
-          :style="{ paddingLeft: `${12 + item.level * 16}px` }"
+          :style="{ marginLeft: `${item.level * 8}px` }"
           @click="goToPage(item)"
         >
           <div class="item-content">
-            <span class="item-title">{{ item.title }}</span>
+            <span class="item-title" :title="item.title">{{ item.title }}</span>
             <span class="item-page">{{ item.page }}</span>
           </div>
         </div>
@@ -90,6 +84,7 @@ interface Props {
   currentPage?: number
   isCollapsed?: boolean
   width?: number
+  hasPdfFile?: boolean
 }
 
 interface Emits {
@@ -103,7 +98,8 @@ const props = withDefaults(defineProps<Props>(), {
   outlineData: () => [],
   currentPage: 1,
   isCollapsed: false,
-  width: 250
+  width: 250,
+  hasPdfFile: false
 })
 
 const emit = defineEmits<Emits>()
@@ -115,23 +111,20 @@ const isGenerating = ref(false)
 
 const outlineItems = computed(() => props.outlineData || [])
 
-// 检查是否包含智能生成的目录
-const hasSmartOutline = computed(() => {
-  return outlineItems.value.some(item => !!item.id)
-})
-
 const activeItemId = computed(() => {
   if (!props.currentPage || outlineItems.value.length === 0) return null
   
   // 找到当前页面对应的目录项
   let activeItem = null
+  let activeIndex = -1
   for (let i = outlineItems.value.length - 1; i >= 0; i--) {
     if (outlineItems.value[i].page <= props.currentPage) {
       activeItem = outlineItems.value[i]
+      activeIndex = i
       break
     }
   }
-  return activeItem?.id || `outline-${activeItem?.page}-${activeItem?.level}` || null
+  return activeItem?.id || `outline-${activeIndex}-${activeItem?.page}-${activeItem?.level}` || null
 })
 
 const toggleCollapse = () => {
@@ -315,45 +308,174 @@ const stopResize = () => {
 .outline-item {
   cursor: pointer;
   padding: 8px 12px;
-  margin: 0 8px;
-  border-radius: 4px;
+  margin: 2px 6px;
+  border-radius: 6px;
   transition: all 0.2s ease;
-  border-left: 2px solid transparent;
+  border-left: 3px solid transparent;
   color: var(--text-primary-color);
+  position: relative;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+/* 不同层级的样式 */
+.outline-item.level-0 {
+  font-weight: 600;
+  font-size: 14px;
+  background: rgba(var(--primary-color-rgb), 0.08);
+  padding: 10px 12px;
+  margin: 3px 6px;
+  border-left: 4px solid var(--primary-color);
+  min-height: 40px;
+}
+
+.outline-item.level-1 {
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 12px;
+  margin: 2px 6px;
+  background: rgba(var(--primary-color-rgb), 0.03);
+  border-left: 3px solid rgba(var(--primary-color-rgb), 0.4);
+  min-height: 36px;
+}
+
+.outline-item.level-2 {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.95;
+  padding: 7px 12px;
+  margin: 1px 6px;
+  border-left: 2px solid rgba(var(--primary-color-rgb), 0.25);
+  min-height: 32px;
+}
+
+.outline-item.level-3 {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.9;
+  padding: 6px 12px;
+  margin: 1px 6px;
+  border-left: 2px solid rgba(var(--primary-color-rgb), 0.15);
+  min-height: 28px;
 }
 
 .outline-item:hover {
-  background: var(--border-color);
+  background: rgba(var(--primary-color-rgb), 0.12);
+  border-left-color: var(--primary-color);
+  transform: translateX(2px);
 }
 
 .outline-item.active {
   background: var(--primary-color);
   color: white;
   border-left-color: var(--primary-hover-color);
+  transform: translateX(3px);
+}
+
+.outline-item.active .item-page {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  opacity: 1;
+}
+
+/* 智能生成目录的特殊样式 */
+.outline-item.smart-generated {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.outline-item.smart-generated:before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+/* 智能生成目录的统一字体调整 */
+.outline-item.smart-generated.level-0 {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.outline-item.smart-generated.level-1 {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.outline-item.smart-generated.level-2 {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0.95;
+}
+
+.outline-item.smart-generated.level-3 {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+  opacity: 0.9;
+}
+
+.outline-item.smart-generated:before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  opacity: 0.6;
 }
 
 .item-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-height: 24px;
 }
 
 .item-title {
   flex: 1;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: inherit;
+  line-height: inherit;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  display: block;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .item-page {
   font-size: 11px;
-  opacity: 0.7;
-  font-weight: 500;
+  opacity: 0.75;
+  font-weight: 600;
   min-width: 20px;
-  text-align: right;
+  text-align: center;
+  background: rgba(var(--text-secondary-color-rgb, 128, 128, 128), 0.15);
+  padding: 3px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 1.2;
 }
 
 .resize-handle {

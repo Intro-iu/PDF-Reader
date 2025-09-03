@@ -18,6 +18,7 @@
           :current-page="pdfViewerState.currentPage"
           :is-collapsed="outlineSidebarCollapsed"
           :width="outlineSidebarWidth"
+          :has-pdf-file="!!selectedFile"
           @go-to-page="handleGoToPage"
           @toggle-collapse="handleOutlineToggle"
           @width-changed="handleOutlineWidthChanged"

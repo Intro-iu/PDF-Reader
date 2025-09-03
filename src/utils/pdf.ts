@@ -238,6 +238,51 @@ export class PdfManager {
     return smartOutline;
   }
 
+  // 合并同一行的文本项
+  private mergeTextItemsOnSameLine(textItems: TextItem[]): TextItem[] {
+    const merged: TextItem[] = [];
+    const tolerance = 5; // 同一行的Y坐标容差
+
+    // 按页面和Y坐标分组
+    const groups: { [key: string]: TextItem[] } = {};
+    
+    for (const item of textItems) {
+      const key = `${item.page}-${Math.round(item.y / tolerance) * tolerance}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    }
+
+    // 合并每组中的文本
+    for (const group of Object.values(groups)) {
+      if (group.length === 1) {
+        merged.push(group[0]);
+      } else {
+        // 按X坐标排序
+        group.sort((a, b) => a.x - b.x);
+        
+        // 合并文本
+        const mergedText = group.map(item => item.text).join(' ');
+        const firstItem = group[0];
+        const maxFontSize = Math.max(...group.map(item => item.fontSize));
+        const hasBold = group.some(item => item.bold);
+        
+        merged.push({
+          text: mergedText,
+          fontSize: maxFontSize,
+          fontName: firstItem.fontName,
+          bold: hasBold,
+          page: firstItem.page,
+          x: firstItem.x,
+          y: firstItem.y,
+          width: group.reduce((sum, item) => sum + item.width, 0),
+          height: Math.max(...group.map(item => item.height))
+        });
+      }
+    }
+
+    return merged;
+  }
+
   private analyzePotentialTitles(textItems: TextItem[]): TextItem[] {
     // 计算文本的统计信息
     const fontSizes = textItems.map(item => item.fontSize);
@@ -246,49 +291,54 @@ export class PdfManager {
 
     console.log(`字体大小统计 - 平均: ${avgFontSize.toFixed(1)}, 最大: ${maxFontSize.toFixed(1)}`);
 
+    // 1. 先合并同一行的文本片段
+    const mergedItems = this.mergeTextItemsOnSameLine(textItems);
+
     const potentialTitles: TextItem[] = [];
 
-    for (const item of textItems) {
+    for (const item of mergedItems) {
       let score = 0;
       
-      // 评分规则
+      // 评分规则 (提高标准)
       // 1. 字体大小评分 (权重最高)
-      if (item.fontSize > avgFontSize * 1.3) score += 3;
-      else if (item.fontSize > avgFontSize * 1.1) score += 2;
-      else if (item.fontSize > avgFontSize) score += 1;
+      if (item.fontSize > avgFontSize * 1.5) score += 4;
+      else if (item.fontSize > avgFontSize * 1.3) score += 3;
+      else if (item.fontSize > avgFontSize * 1.1) score += 1;
 
       // 2. 粗体评分
-      if (item.bold) score += 2;
+      if (item.bold) score += 3;
 
       // 3. 文本长度评分 (标题通常不会太长)
-      if (item.text.length < 100 && item.text.length > 3) score += 1;
+      if (item.text.length < 80 && item.text.length > 5) score += 1;
 
       // 4. 位置评分 (页面顶部的文本更可能是标题)
-      if (item.y < 100) score += 1; // 页面顶部
+      if (item.y < 150) score += 1; // 页面顶部
 
-      // 5. 特殊模式识别
+      // 5. 特殊模式识别 (提高分数)
       const text = item.text.toLowerCase();
       
       // 章节模式
       if (/^(第[一二三四五六七八九十\d]+[章节部分]|chapter\s*\d+|section\s*\d+)/i.test(text)) {
-        score += 4;
+        score += 5;
       }
       
       // 数字开头
-      if (/^\d+\./.test(text)) score += 2;
+      if (/^\d+\./.test(text)) score += 3;
       
       // 目录关键词
       if (/^(摘要|abstract|introduction|conclusion|参考文献|bibliography|目录|contents)/i.test(text)) {
-        score += 3;
+        score += 4;
       }
 
       // 6. 排除明显不是标题的文本
-      if (item.text.length > 200) score -= 2; // 太长
-      if (/^\d+$/.test(item.text)) score -= 2; // 纯数字
-      if (item.text.includes('。') && item.text.length > 50) score -= 1; // 包含句号的长文本
+      if (item.text.length > 150) score -= 3; // 太长
+      if (/^\d+$/.test(item.text)) score -= 3; // 纯数字
+      if (item.text.includes('。') && item.text.length > 30) score -= 2; // 包含句号的长文本
+      if (/^(page|页)\s*\d+/i.test(item.text)) score -= 3; // 页码
+      if (item.text.length < 5) score -= 2; // 太短
 
-      // 记录评分较高的文本
-      if (score >= 3) {
+      // 提高门槛，只保留评分较高的
+      if (score >= 4) {
         console.log(`潜在标题 (评分:${score}): "${item.text}" (页面:${item.page}, 字体:${item.fontSize.toFixed(1)})`);
         potentialTitles.push({ ...item });
       }

@@ -87,6 +87,15 @@
             <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
           </svg>
         </div>
+        <button 
+          class="fit-page-btn" 
+          @click="fitToPage"
+          title="适合页面大小"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 9h6v6h-6zm2 2v2h2v-2zm9-7h-6v2h4v4h2zm-2 16h-4v2h6v-6h-2zm-16-4h2v-4h-2zm0-6h2v-4h-2zm2-6h4v-2h-6v6h2z"/>
+          </svg>
+        </button>
         <div class="zoom-slider-container">
           <input 
             type="range" 
@@ -334,6 +343,38 @@ const handleZoomChange = (event: Event) => {
   queueRender(newScale)
 }
 
+const fitToPage = async () => {
+  if (!pdfDoc.value || !pdfPagesContainer.value) return
+  
+  try {
+    // 使用 pdfManager 获取第一页的尺寸
+    const dimensions = await pdfManager.getPageDimensions(1)
+    
+    // 获取容器尺寸
+    const container = pdfPagesContainer.value
+    const containerWidth = container.clientWidth - 40 // 减去padding
+    const containerHeight = container.clientHeight - 40 // 减去padding
+    
+    // 计算适合宽度和高度的缩放比例
+    const scaleForWidth = containerWidth / dimensions.width
+    const scaleForHeight = containerHeight / dimensions.height
+    
+    // 选择较小的缩放比例，确保整个页面都能显示
+    const targetScale = Math.min(scaleForWidth, scaleForHeight, maxScale.value)
+    
+    // 确保不低于最小缩放比例
+    const finalScale = Math.max(targetScale, minScale.value)
+    
+    // 应用新的缩放比例
+    currentScale.value = finalScale
+    queueRender(finalScale)
+    
+    console.log(`适合页面缩放: ${Math.round(finalScale * 100)}%`)
+  } catch (error) {
+    console.error('计算适合页面缩放时出错:', error)
+  }
+}
+
 const goToPage = (pageNum: number) => {
   if (pageNum >= 1 && pageNum <= totalPages.value) {
     currentPage.value = pageNum
@@ -531,12 +572,12 @@ defineExpose({
 .pdf-zoom-control {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--input-background);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 8px 12px;
-  min-width: 180px;
+  min-width: 220px;
   max-width: 100%;
 }
 
@@ -549,6 +590,32 @@ defineExpose({
 .zoom-control-handle svg {
   width: 18px;
   height: 18px;
+}
+
+.fit-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 28px;
+}
+
+.fit-page-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary-color);
+  border-color: var(--primary-color);
+}
+
+.fit-page-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .zoom-slider-container {

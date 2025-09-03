@@ -129,6 +129,20 @@ export class PdfManager {
     return this.MAX_SCALE;
   }
 
+  async getPageDimensions(pageNum: number = 1): Promise<{ width: number; height: number }> {
+    if (!this.currentDoc) {
+      throw new Error('No document loaded');
+    }
+
+    const page = await this.currentDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.0 });
+    
+    return {
+      width: viewport.width,
+      height: viewport.height
+    };
+  }
+
   async getTextContent(pageNum: number): Promise<string> {
     if (!this.currentDoc) {
       throw new Error('No document loaded');

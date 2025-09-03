@@ -1,8 +1,21 @@
 import { invoke } from '@tauri-apps/api/core'
 import { configManager } from './config'
+import { getPlatformInfo } from './platform'
 import type { AIModel } from '@/types'
 
 export const initializeApp = async () => {
+  // 平台检测和适配
+  const platformInfo = getPlatformInfo()
+  console.log(`运行平台: ${platformInfo.name} (${platformInfo.isTauri ? 'Desktop' : 'Web'})`)
+  
+  // 为不同平台添加特定的CSS类
+  document.body.classList.add(`platform-${platformInfo.name.toLowerCase()}`)
+  if (platformInfo.isTauri) {
+    document.body.classList.add('tauri-app')
+  } else {
+    document.body.classList.add('web-app')
+  }
+  
   // 确保配置已经初始化完成
   await configManager.initialize()
   

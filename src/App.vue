@@ -182,9 +182,10 @@ const sidebarState = reactive({
 })
 
 // 工具函数
-const normalizePath = (path: string): string => {
-  return path.replace(/\\/g, '/')
-}
+import { normalizePath, getPlatformInfo } from './utils/platform'
+
+const platformInfo = getPlatformInfo()
+console.log(`运行在 ${platformInfo.name} 平台，${platformInfo.isTauri ? 'Tauri' : 'Web'} 环境`)
 
 // 事件处理函数
 const handleFileSelected = (file: File, filePath?: string) => {

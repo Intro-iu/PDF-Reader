@@ -215,6 +215,38 @@ npm run build:current
 - **Rust** - 系统级编程语言
 - **WebView** - 系统原生 WebView
 
+### 核心特性
+- **跨平台兼容** - 支持 Windows、macOS、Linux
+- **原生性能** - Rust 后端提供原生级性能
+- **现代 UI** - Vue 3 组合式 API + TypeScript
+- **安全可靠** - Tauri 安全模型保护系统资源
+
+## 🚀 自动化构建
+
+### GitHub Actions 工作流
+项目包含自动化构建工作流：
+
+**Release Build** (`.github/workflows/release.yml`)
+- 触发条件：推送版本标签 (`v*`)
+- 功能：自动构建所有平台并发布到 GitHub Releases
+- 支持平台：Windows, macOS (Intel + Apple Silicon), Linux
+
+### 创建新版本发布
+```bash
+# 创建并推送版本标签
+git tag v1.0.0
+git push origin v1.0.0
+
+# GitHub Actions 将自动：
+# 1. 构建所有平台版本
+# 2. 创建 GitHub Release
+# 3. 上传构建产物
+# 4. 生成详细的发布说明
+```
+
+### 构建状态
+[![Release Build](https://github.com/ZeroHzzzz/PDF-Reader/actions/workflows/release.yml/badge.svg)](https://github.com/ZeroHzzzz/PDF-Reader/actions/workflows/release.yml)
+
 ## 🙏 致谢
 
 感谢以下开源项目：

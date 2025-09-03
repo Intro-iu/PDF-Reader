@@ -48,6 +48,30 @@
 
 ## 🚀 快速开始
 
+### 📥 安装与运行
+```bash
+# 1. 克隆项目
+git clone https://github.com/ZeroHzzzz/PDF-Reader.git
+cd PDF-Reader
+
+# 2. 安装依赖
+npm install
+
+# 3. 开发模式
+npm run dev
+
+# 4. 构建应用（推荐）
+npm run build:current
+```
+
+### 💻 构建说明
+- **开发调试**：`npm run dev` - 实时预览
+- **本地打包**：`npm run build:current` - 自动检测平台构建
+- **特定平台**：`npm run build:windows/linux/macos` - 仅在对应平台可用
+- **多平台发布**：使用 GitHub Actions 自动构建所有平台
+
+详细构建说明请查看 [BUILD.md](./BUILD.md)
+
 ### 安装依赖
 
 ```bash
@@ -148,21 +172,35 @@ sudo dnf install webkit2gtk4.0-devel libappindicator-gtk3-devel librsvg2-devel p
 
 ## 📦 打包与分发
 
-### 本地打包（当前平台）
+### 🚀 快速开始
 ```bash
-npm run tauri:build
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 构建当前平台（推荐）
+npm run build:current
 ```
 
-### 多平台打包
-由于跨平台编译的限制，建议使用 GitHub Actions 进行多平台构建：
+### 🔨 构建命令详解
 
-```bash
-# 创建版本标签触发自动构建
-git tag v1.0.0
-git push origin v1.0.0
-```
+| 脚本命令 | 用途 | 适用平台 | 说明 |
+|---------|------|----------|------|
+| `npm run dev` | 开发模式，实时预览 | 所有平台 | 用于开发调试 |
+| `npm run build` | 仅构建前端资源 | 所有平台 | 不生成可执行文件 |
+| `npm run build:current` | **推荐**：构建当前平台应用 | 所有平台 | 自动检测平台并构建 |
+| `npm run build:windows` | 构建 Windows MSI 安装包 | 仅 Windows | 生成 .msi 安装文件 |
+| `npm run build:linux` | 构建 Linux DEB/AppImage | 仅 Linux | 生成 .deb 和 .AppImage |
+| `npm run build:macos` | 构建 macOS DMG (Intel) | 仅 macOS | 适用于 Intel 芯片 Mac |
+| `npm run build:macos-arm` | 构建 macOS DMG (Apple Silicon) | 仅 macOS | 适用于 M1/M2 芯片 Mac |
 
-详细打包说明请查看 [BUILD.md](./BUILD.md)
+### 📂 构建输出位置
+构建完成后，可执行文件位于 `src-tauri/target/` 目录下：
+- **Windows**: `x86_64-pc-windows-msvc/release/bundle/msi/PDF Reader_0.1.0_x64_en-US.msi`
+- **Linux**: `x86_64-unknown-linux-gnu/release/bundle/deb/pdf-reader_0.1.0_amd64.deb`
+- **macOS**: `x86_64-apple-darwin/release/bundle/dmg/PDF Reader_0.1.0_x64.dmg`
 
 ## 🏗️ 技术架构
 
@@ -176,12 +214,6 @@ git push origin v1.0.0
 - **Tauri 2.x** - 跨平台桌面应用框架
 - **Rust** - 系统级编程语言
 - **WebView** - 系统原生 WebView
-
-### 核心特性
-- **跨平台兼容** - 支持 Windows、macOS、Linux
-- **原生性能** - Rust 后端提供原生级性能
-- **现代 UI** - Vue 3 组合式 API + TypeScript
-- **安全可靠** - Tauri 安全模型保护系统资源
 
 ## 🙏 致谢
 

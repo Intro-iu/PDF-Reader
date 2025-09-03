@@ -40,20 +40,28 @@
       <div class="text-section">
         <h4>翻译结果</h4>
         <div class="text-container translation-result">
-          <div v-if="isTranslating" class="loading">
+          <!-- 流式翻译中 -->
+          <div v-if="streamingTranslation" class="text-content streaming">
+            {{ streamingTranslation }}
+            <span class="streaming-cursor">|</span>
+          </div>
+          <!-- 普通加载中 -->
+          <div v-else-if="isTranslating" class="loading">
             <div class="loading-spinner"></div>
             正在翻译...
           </div>
+          <!-- 翻译完成 -->
           <div v-else-if="translation" class="text-content">
             {{ translation }}
           </div>
+          <!-- 空状态 -->
           <div v-else class="empty-text">
             翻译结果将显示在这里
           </div>
         </div>
         
         <button 
-          v-if="translation"
+          v-if="translation && !streamingTranslation"
           class="copy-button"
           @click="copyTranslation"
         >
@@ -70,6 +78,7 @@ interface Props {
   translation: string
   isTranslating: boolean
   autoTranslate: boolean
+  streamingTranslation?: string
 }
 
 interface Emits {
@@ -249,6 +258,21 @@ const copyTranslation = async () => {
 .translate-button:disabled {
   background: var(--border-color);
   cursor: not-allowed;
+}
+
+.streaming {
+  position: relative;
+}
+
+.streaming-cursor {
+  color: var(--primary-color);
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 .selected-text {

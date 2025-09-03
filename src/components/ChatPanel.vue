@@ -22,12 +22,23 @@
         :class="{ 'user-message': message.role === 'user', 'ai-message': message.role === 'assistant' }"
       >
         <div class="message-content">
-          <div class="message-text">{{ message.content }}</div>
+          <div class="message-text" v-html="formatMessageContent(message.content)"></div>
           <div class="message-time">{{ formatTime(message.timestamp) }}</div>
         </div>
       </div>
 
-      <div v-if="isThinking" class="message ai-message thinking">
+      <!-- 流式输出的消息 -->
+      <div v-if="streamingMessage" class="message ai-message streaming">
+        <div class="message-content">
+          <div class="message-text">
+            <span v-html="formatMessageContent(streamingMessage)"></span>
+            <span class="streaming-cursor">|</span>
+          </div>
+          <div class="message-time">{{ formatTime(Date.now()) }}</div>
+        </div>
+      </div>
+
+      <div v-if="isThinking && !streamingMessage" class="message ai-message thinking">
         <div class="message-content">
           <div class="thinking-indicator">
             <div class="thinking-dots">
@@ -75,10 +86,12 @@ import type { ChatMessage } from '@/types'
 interface Props {
   messages: ChatMessage[]
   isThinking: boolean
+  streamingMessage?: string
 }
 
 interface Emits {
   (e: 'send-message', message: string): void
+  (e: 'send-message-stream', message: string): void
   (e: 'new-chat'): void
 }
 
@@ -88,11 +101,16 @@ const emit = defineEmits<Emits>()
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement>()
 const textareaRef = ref<HTMLTextAreaElement>()
+const enableStreaming = ref(true) // 默认启用流式输出
 
 const sendMessage = () => {
   const message = inputMessage.value.trim()
   if (message) {
-    emit('send-message', message)
+    if (enableStreaming.value) {
+      emit('send-message-stream', message)
+    } else {
+      emit('send-message', message)
+    }
     inputMessage.value = ''
     adjustTextareaHeight()
   }
@@ -144,8 +162,16 @@ const formatTime = (timestamp: number): string => {
   }
 }
 
+const formatMessageContent = (content: string): string => {
+  // 简单的Markdown渲染，支持代码块和换行
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+}
+
 // 监听消息变化，自动滚动到底部
-watch(() => [props.messages, props.isThinking], () => {
+watch(() => [props.messages, props.isThinking, props.streamingMessage], () => {
   scrollToBottom()
 }, { deep: true })
 </script>
@@ -384,5 +410,45 @@ watch(() => [props.messages, props.isThinking], () => {
 .send-button svg {
   width: 18px;
   height: 18px;
+}
+
+/* 流式输出样式 */
+.message.streaming .message-text {
+  position: relative;
+}
+
+.streaming-cursor {
+  color: var(--primary-color);
+  font-weight: bold;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* 消息内容的代码样式 */
+.message-text code {
+  background: rgba(var(--primary-color-rgb), 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+.message-text pre {
+  background: rgba(var(--text-primary-color-rgb), 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  overflow-x: auto;
+  border-left: 3px solid var(--primary-color);
+}
+
+.message-text pre code {
+  background: none;
+  padding: 0;
 }
 </style>

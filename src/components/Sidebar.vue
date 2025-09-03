@@ -46,6 +46,7 @@
             :translation="translation"
             :is-translating="isTranslating"
             :auto-translate="autoTranslate"
+            :streaming-translation="streamingTranslation"
             @translate="handleTranslate"
             @toggle-auto-translate="toggleAutoTranslate"
           />
@@ -56,7 +57,9 @@
           <ChatPanel 
             :messages="chatMessages"
             :is-thinking="isChatThinking"
+            :streaming-message="streamingMessage"
             @send-message="handleSendMessage"
+            @send-message-stream="handleSendMessageStream"
             @new-chat="handleNewChat"
           />
         </div>
@@ -98,6 +101,8 @@ interface Props {
   autoTranslate: boolean
   chatMessages: ChatMessage[]
   isChatThinking: boolean
+  streamingMessage?: string
+  streamingTranslation?: string
   pdfHistory?: PdfHistoryItem[]
   isAppReady: boolean
   isCollapsed?: boolean
@@ -108,6 +113,7 @@ interface Emits {
   (e: 'translate', text: string): void
   (e: 'toggle-auto-translate'): void
   (e: 'send-message', message: string): void
+  (e: 'send-message-stream', message: string): void
   (e: 'new-chat'): void
   (e: 'sidebar-width-changed', width: number): void
   (e: 'sidebar-state-changed', collapsed: boolean, activeTab: string): void
@@ -219,6 +225,10 @@ const toggleAutoTranslate = () => {
 
 const handleSendMessage = (message: string) => {
   emit('send-message', message)
+}
+
+const handleSendMessageStream = (message: string) => {
+  emit('send-message-stream', message)
 }
 
 const handleNewChat = () => {

@@ -48,6 +48,8 @@
           :auto-translate="translationState.autoTranslate"
           :chat-messages="chatMessages"
           :is-chat-thinking="isChatThinking"
+          :streaming-message="streamingMessage"
+          :streaming-translation="streamingTranslation"
           :pdf-history="pdfHistory"
           :is-app-ready="isAppReady"
           :is-collapsed="sidebarState.isCollapsed"
@@ -55,6 +57,7 @@
           @translate="handleTranslate"
           @toggle-auto-translate="toggleAutoTranslate"
           @send-message="handleSendMessage"
+          @send-message-stream="handleSendMessage"
           @new-chat="handleNewChat"
           @sidebar-width-changed="handleSidebarWidthChanged"
           @sidebar-state-changed="handleSidebarStateChanged"
@@ -171,6 +174,8 @@ const translationState = reactive<TranslationState>({
 })
 
 const chatMessages = ref<ChatMessage[]>([])
+const streamingMessage = ref('')
+const streamingTranslation = ref('')
 
 // PDF历史记录状态
 const pdfHistory = ref<PdfHistoryItem[]>([])
@@ -235,25 +240,19 @@ const handleTranslate = async (text: string) => {
 
   translationState.isTranslating = true
   translationState.error = null
+  streamingTranslation.value = ''
 
   try {
-    const result = await aiService.translateText(
+    // 使用流式翻译
+    await aiService.translateTextStream(
       model, 
       text, 
       configManager.getConfig().translateTargetLang,
       configManager.getConfig().translationPrompt
     )
-
-    if (result.error) {
-      translationState.error = result.error
-      setError(result.error)
-    } else {
-      translationState.translatedText = result.translatedText
-    }
   } catch (err: any) {
     translationState.error = err.message
     setError(err.message)
-  } finally {
     translationState.isTranslating = false
   }
 }
@@ -375,24 +374,13 @@ const handleSendMessage = async (message: string) => {
       .filter(msg => msg.role !== 'user' || msg.id !== userMessage.id)
       .map(msg => ({ role: msg.role, content: msg.content }))
 
-    const result = await aiService.sendChatMessage(
+    // 使用流式输出
+    await aiService.sendChatMessageStream(
       model,
       message,
       chatHistory,
       configManager.getConfig().chatPrompt
     )
-
-    if (result.error) {
-      setError(result.error)
-    } else {
-      const aiMessage: ChatMessage = {
-        id: `ai_${Date.now()}`,
-        role: 'assistant',
-        content: result.content,
-        timestamp: Date.now()
-      }
-      chatMessages.value.push(aiMessage)
-    }
   } catch (err: any) {
     setError(err.message)
   } finally {
@@ -685,6 +673,47 @@ onMounted(async () => {
   // 加载PDF历史记录
   loadPdfHistory()
   console.log('PDF历史记录加载完成')
+  
+  // 设置AI服务事件监听
+  aiService.on('streamMessage', (data: { id: string; content: string }) => {
+    streamingMessage.value = data.content
+  })
+  
+  aiService.on('streamComplete', (data: { id: string; content: string }) => {
+    // 流式输出完成时，添加到聊天消息
+    const aiMessage: ChatMessage = {
+      id: data.id,
+      role: 'assistant',
+      content: data.content,
+      timestamp: Date.now()
+    }
+    chatMessages.value.push(aiMessage)
+    streamingMessage.value = ''
+  })
+  
+  aiService.on('streamError', (error: string) => {
+    setError(error)
+    streamingMessage.value = ''
+  })
+  
+  // 翻译相关事件监听
+  aiService.on('streamTranslation', (data: { id: string; content: string }) => {
+    streamingTranslation.value = data.content
+  })
+  
+  aiService.on('translationComplete', (data: { id: string; content: string }) => {
+    // 流式翻译完成时，设置最终翻译结果
+    translationState.translatedText = data.content
+    streamingTranslation.value = ''
+    translationState.isTranslating = false
+  })
+  
+  aiService.on('translationError', (error: string) => {
+    setError(error)
+    streamingTranslation.value = ''
+    translationState.isTranslating = false
+    translationState.error = error
+  })
   
   // 等待一小段时间确保所有组件都已渲染
   await new Promise(resolve => setTimeout(resolve, 100))

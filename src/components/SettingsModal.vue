@@ -3,6 +3,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { reactive, onMounted, watch, ref } from 'vue';
 
 // --- 类型定义 ---
+interface Props {
+    theme?: 'light' | 'dark';
+}
+
 interface AiModel {
     id: string;
     name: string;
@@ -50,12 +54,19 @@ const editingModel = reactive<Omit<AiModel, 'id'>>({
     supportsTranslation: true
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'toggle-theme']);
+
+const props = withDefaults(defineProps<Props>(), {
+    theme: 'dark'
+});
 
 // --- 生命周期钩子 ---
 onMounted(async () => {
     await loadSettings();
-    applyTheme(localStorage.getItem('theme') || 'dark');
+    updateThemeIcons();
+    watch(() => props.theme, () => {
+        updateThemeIcons();
+    });
     watch(settings, () => {
         if (settings.autoSaveSettings) {
             saveSettings();
@@ -147,6 +158,13 @@ function updateAiModelField(modelId: string, field: keyof AiModel, value: any) {
 const themeIconLight = ref<HTMLElement | null>(null);
 const themeIconDark = ref<HTMLElement | null>(null);
 
+function updateThemeIcons() {
+    if (themeIconLight.value && themeIconDark.value) {
+        themeIconLight.value.style.display = props.theme === 'light' ? 'block' : 'none';
+        themeIconDark.value.style.display = props.theme === 'dark' ? 'block' : 'none';
+    }
+}
+
 function applyTheme(theme: string) {
     document.body.classList.toggle('light-mode', theme === 'light');
     if (themeIconLight.value && themeIconDark.value) {
@@ -156,9 +174,7 @@ function applyTheme(theme: string) {
 }
 
 function toggleTheme() {
-    const newTheme = document.body.classList.contains('light-mode') ? 'dark' : 'light';
-    localStorage.setItem('theme', newTheme);
-    applyTheme(newTheme);
+    emit('toggle-theme');
 }
 
 // --- DOM 操作 & 样式更新 ---
@@ -221,7 +237,7 @@ async function importConfig() {
                 <div class="toolbar-right">
                     <button id="theme-toggle" title="切换深色/浅色模式" @click="toggleTheme">
                         <svg ref="themeIconLight" id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
-                            <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM12 3c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1V4c0-.55-.45-1-1-1zm0 16c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1v-1c0-.55-.45-1-1-1zM5.64 5.64c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zm12.72 12.72c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zM3 12c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1H4c-.55 0-1 .45-1 1zm16 0c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1h-1c-.55 0-1 .45-1 1zm-9.36 5.36c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39 1.02 0 1.41zm-1.41-12.72c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39-1.02 0-1.41z" />
+                            <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM12 3c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1V4c0-.55-.45-1-1-1zm0 16c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1v-1c0-.55-.45-1-1-1zM5.64 5.64c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zm12.72 12.72c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zM3 12c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1H4c-.55 0-1 .45-1 1zm16 0c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1h-1c-.55 0-1 .45-1 1zm-9.36 5.36c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39 1.02 0 1.41zm-1.41-12.72c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39 1.02 0 1.41z" />
                         </svg>
                         <svg ref="themeIconDark" id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M9.37 5.51C9.19 6.15 9.1 6.82 9.1 7.5c0 4.08 3.32 7.4 7.4 7.4.68 0 1.35-.09 1.99-.27C17.45 17.19 14.93 19 12 19c-3.86 0-7-3.14-7-7 0-2.93 1.81-5.45 4.37-6.49z" />

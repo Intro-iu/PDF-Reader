@@ -66,7 +66,9 @@
     <!-- 设置模态框 -->
     <SettingsModal 
       v-if="showSettings"
+      :theme="theme"
       @close="closeSettings"
+      @toggle-theme="toggleTheme"
     />
 
     <!-- 错误提示 -->

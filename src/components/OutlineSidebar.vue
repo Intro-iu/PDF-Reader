@@ -168,7 +168,7 @@ const stopResize = () => {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary-color);
 }
 
 .collapse-btn {
@@ -177,7 +177,7 @@ const stopResize = () => {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -186,7 +186,7 @@ const stopResize = () => {
 
 .collapse-btn:hover {
   background: var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-primary-color);
 }
 
 .collapse-btn svg {
@@ -208,7 +208,7 @@ const stopResize = () => {
   justify-content: center;
   padding: 32px 16px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   flex: 1;
 }
 
@@ -225,12 +225,12 @@ const stopResize = () => {
 .empty-outline p {
   margin: 0 0 8px 0;
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--text-primary-color);
 }
 
 .empty-outline small {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .outline-list {
@@ -246,6 +246,7 @@ const stopResize = () => {
   border-radius: 4px;
   transition: all 0.2s ease;
   border-left: 2px solid transparent;
+  color: var(--text-primary-color);
 }
 
 .outline-item:hover {
@@ -311,6 +312,6 @@ const stopResize = () => {
 }
 
 .outline-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--text-secondary-color);
 }
 </style>

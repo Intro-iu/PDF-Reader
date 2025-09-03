@@ -492,12 +492,39 @@ const togglePdfDarkMode = () => {
   localStorage.setItem('pdfDarkMode', pdfDarkMode.value.toString())
 }
 
+// 检查文本选择是否在textLayer中
+const isSelectionInTextLayer = (selection: Selection): boolean => {
+  if (!selection.rangeCount) return false
+  
+  const range = selection.getRangeAt(0)
+  let currentElement = range.commonAncestorContainer
+  
+  // 如果是文本节点，获取其父元素
+  if (currentElement.nodeType === Node.TEXT_NODE) {
+    currentElement = currentElement.parentElement
+  }
+  
+  // 向上遍历DOM树，查找是否在textLayer中
+  while (currentElement && currentElement !== document.body) {
+    if (currentElement.classList && currentElement.classList.contains('textLayer')) {
+      return true
+    }
+    currentElement = currentElement.parentElement
+  }
+  
+  return false
+}
+
 const handleTextSelection = () => {
   const selection = window.getSelection()
   if (selection && selection.toString().trim()) {
     const selectedText = selection.toString().trim()
-    emit('text-selected', selectedText)
-    selectedTextForMenu.value = selectedText
+    
+    // 只有在textLayer中的文本选择才触发翻译
+    if (isSelectionInTextLayer(selection)) {
+      emit('text-selected', selectedText)
+      selectedTextForMenu.value = selectedText
+    }
   }
 }
 
@@ -506,8 +533,8 @@ const handleContextMenu = (event: MouseEvent) => {
   const selection = window.getSelection()
   const selectedText = selection?.toString().trim()
   
-  // 只有在选中文本时才显示右键菜单
-  if (selectedText) {
+  // 只有在textLayer中选中文本时才显示右键菜单
+  if (selectedText && selection && isSelectionInTextLayer(selection)) {
     event.preventDefault()
     selectedTextForMenu.value = selectedText
     
@@ -526,6 +553,19 @@ const handleContextMenu = (event: MouseEvent) => {
 const hideContextMenu = () => {
   contextMenu.show = false
   selectedTextForMenu.value = ''
+}
+
+// 处理点击事件，清空非textLayer的文本选择
+const handleDocumentClick = (event: MouseEvent) => {
+  hideContextMenu()
+  
+  // 检查点击是否在textLayer外
+  const selection = window.getSelection()
+  if (selection && selection.toString().trim() && !isSelectionInTextLayer(selection)) {
+    // 如果选择的文本不在textLayer中，清空选择并通知父组件
+    selection.removeAllRanges()
+    emit('text-selected', '')
+  }
 }
 
 const handleTranslateAction = () => {
@@ -573,14 +613,14 @@ onMounted(() => {
   
   // 添加文本选择事件监听
   document.addEventListener('mouseup', handleTextSelection)
-  // 添加全局点击事件监听器来隐藏右键菜单
-  document.addEventListener('click', hideContextMenu)
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
   // 清理事件监听
   document.removeEventListener('mouseup', handleTextSelection)
-  document.removeEventListener('click', hideContextMenu)
+  document.removeEventListener('click', handleDocumentClick)
   
   // 清理定时器
   if (renderTimeout.value) {

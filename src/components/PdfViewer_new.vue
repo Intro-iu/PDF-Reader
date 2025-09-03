@@ -537,6 +537,7 @@ defineExpose({
   border-radius: 6px;
   padding: 8px 12px;
   min-width: 180px;
+  max-width: 100%;
 }
 
 .zoom-control-handle {
@@ -652,6 +653,8 @@ defineExpose({
   background: var(--surface-color);
   border-top: 1px solid var(--border-color);
   position: relative;
+  flex-wrap: wrap;
+  min-height: 60px;
 }
 
 .page-navigation .nav-controls {
@@ -663,6 +666,7 @@ defineExpose({
 .page-navigation .pdf-zoom-control {
   position: absolute;
   right: 16px;
+  flex-shrink: 0;
 }
 
 .nav-button {
@@ -796,5 +800,44 @@ defineExpose({
 /* 检测并保持图片在夜间模式下相对正常 */
 .pdf-dark-mode :deep(.pdf-page .pdf-image) {
   filter: invert(1) hue-rotate(180deg);
+}
+
+/* 响应式设计 */
+@media (max-width: 900px) {
+  .page-navigation .pdf-zoom-control {
+    position: static;
+    margin-top: 8px;
+  }
+  
+  .page-navigation {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-navigation {
+    padding: 12px;
+  }
+  
+  .page-navigation .nav-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .page-navigation .pdf-zoom-control {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .pdf-zoom-control {
+    min-width: 160px;
+  }
+  
+  .zoom-label {
+    min-width: 35px;
+  }
 }
 </style>

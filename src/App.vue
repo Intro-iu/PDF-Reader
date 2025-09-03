@@ -18,7 +18,6 @@
           :current-page="pdfViewerState.currentPage"
           :is-collapsed="outlineSidebarCollapsed"
           :width="outlineSidebarWidth"
-          :has-pdf-file="!!selectedFile"
           @go-to-page="handleGoToPage"
           @toggle-collapse="handleOutlineToggle"
           @width-changed="handleOutlineWidthChanged"
@@ -48,8 +47,6 @@
           :auto-translate="translationState.autoTranslate"
           :chat-messages="chatMessages"
           :is-chat-thinking="isChatThinking"
-          :streaming-message="streamingMessage"
-          :streaming-translation="streamingTranslation"
           :pdf-history="pdfHistory"
           :is-app-ready="isAppReady"
           :is-collapsed="sidebarState.isCollapsed"
@@ -57,7 +54,6 @@
           @translate="handleTranslate"
           @toggle-auto-translate="toggleAutoTranslate"
           @send-message="handleSendMessage"
-          @send-message-stream="handleSendMessage"
           @new-chat="handleNewChat"
           @sidebar-width-changed="handleSidebarWidthChanged"
           @sidebar-state-changed="handleSidebarStateChanged"
@@ -117,14 +113,7 @@ import OutlineSidebar from './components/OutlineSidebar.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
 import { applyCSSVariables } from './utils/init'
-import type { 
-  Theme, 
-  PdfViewerState, 
-  TranslationState, 
-  ChatMessage, 
-  OutlineItem, 
-  PdfHistoryItem 
-} from '@/types'
+import type { Theme, PdfViewerState, TranslationState, ChatMessage } from './types'
 
 interface PdfHistoryItem {
   id: string
@@ -181,8 +170,6 @@ const translationState = reactive<TranslationState>({
 })
 
 const chatMessages = ref<ChatMessage[]>([])
-const streamingMessage = ref('')
-const streamingTranslation = ref('')
 
 // PDF历史记录状态
 const pdfHistory = ref<PdfHistoryItem[]>([])
@@ -194,18 +181,18 @@ const sidebarState = reactive({
   activeTab: 'translate' as 'translate' | 'chat' | 'history'
 })
 
+// 工具函数
+const normalizePath = (path: string): string => {
+  return path.replace(/\\/g, '/')
+}
+
 // 事件处理函数
-const handleFileSelected = async (file: File, filePath?: string) => {
+const handleFileSelected = (file: File, filePath?: string) => {
   selectedFile.value = file
   
-  // 直接使用原始文件路径，不复制文件
-  const actualPath = filePath || file.name
-  
-  console.log('选择的PDF文件:', file.name)
-  console.log('文件路径:', actualPath)
-  
-  // 添加到历史记录 (路径, 文件名)
-  addToPdfHistory(actualPath, file.name)
+  // 如果有文件路径（Tauri环境），使用真实路径；否则使用文件名
+  const path = filePath || file.name
+  addToPdfHistory(file.name, path)
 }
 
 const handlePdfLoaded = (info: { totalPages: number }) => {
@@ -252,19 +239,25 @@ const handleTranslate = async (text: string) => {
 
   translationState.isTranslating = true
   translationState.error = null
-  streamingTranslation.value = ''
 
   try {
-    // 使用流式翻译
-    await aiService.translateTextStream(
+    const result = await aiService.translateText(
       model, 
       text, 
       configManager.getConfig().translateTargetLang,
       configManager.getConfig().translationPrompt
     )
+
+    if (result.error) {
+      translationState.error = result.error
+      setError(result.error)
+    } else {
+      translationState.translatedText = result.translatedText
+    }
   } catch (err: any) {
     translationState.error = err.message
     setError(err.message)
+  } finally {
     translationState.isTranslating = false
   }
 }
@@ -386,13 +379,24 @@ const handleSendMessage = async (message: string) => {
       .filter(msg => msg.role !== 'user' || msg.id !== userMessage.id)
       .map(msg => ({ role: msg.role, content: msg.content }))
 
-    // 使用流式输出
-    await aiService.sendChatMessageStream(
+    const result = await aiService.sendChatMessage(
       model,
       message,
       chatHistory,
       configManager.getConfig().chatPrompt
     )
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      const aiMessage: ChatMessage = {
+        id: `ai_${Date.now()}`,
+        role: 'assistant',
+        content: result.content,
+        timestamp: Date.now()
+      }
+      chatMessages.value.push(aiMessage)
+    }
   } catch (err: any) {
     setError(err.message)
   } finally {
@@ -415,30 +419,29 @@ const handleSidebarStateChanged = (isCollapsed: boolean, activeTab: string) => {
 }
 
 // PDF历史记录管理函数
-const addToPdfHistory = (filePath: string, fileName: string) => {
-  console.log('添加到历史记录:', fileName, '路径:', filePath)
+const addToPdfHistory = (fileName: string, filePath: string) => {
+  // 将反斜杠转换为正斜杠格式
+  const normalizedPath = normalizePath(filePath)
   
   const historyItem: PdfHistoryItem = {
     id: `pdf_${Date.now()}`,
     name: fileName,
-    path: filePath,
+    path: normalizedPath,
     openTime: Date.now()
   }
   
   // 检查是否已存在（基于文件路径）
   const existingIndex = pdfHistory.value.findIndex(item => 
-    item.path === filePath
+    item.path === normalizedPath
   )
   
   if (existingIndex >= 0) {
     // 如果已存在，更新时间并移到最前
-    console.log('文件已存在于历史记录中，更新时间')
     pdfHistory.value[existingIndex].openTime = Date.now()
     const item = pdfHistory.value.splice(existingIndex, 1)[0]
     pdfHistory.value.unshift(item)
   } else {
     // 添加新记录到开头
-    console.log('添加新的历史记录')
     pdfHistory.value.unshift(historyItem)
   }
   
@@ -446,8 +449,6 @@ const addToPdfHistory = (filePath: string, fileName: string) => {
   if (pdfHistory.value.length > maxPdfHistory) {
     pdfHistory.value = pdfHistory.value.slice(0, maxPdfHistory)
   }
-  
-  console.log('当前历史记录数量:', pdfHistory.value.length)
   
   // 保存到本地存储
   savePdfHistory()
@@ -471,92 +472,32 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
   try {
     if (window.__TAURI_INTERNALS__ && item.path !== item.name) {
       // Tauri环境且有真实文件路径
-      const { readFile, exists } = await import('@tauri-apps/plugin-fs')
+      const { readFile } = await import('@tauri-apps/plugin-fs')
       
-      console.log('尝试打开文件:', item.path)
-      console.log('文件名:', item.name)
-      console.log('路径中是否包含空格:', item.path.includes(' '))
-      
-      // 尝试多种路径格式
-      const pathsToTry = [
-        item.path,                              // 原始路径
-        item.path.replace(/\//g, '\\'),        // 标准化为Windows路径
-        `"${item.path}"`,                      // 添加双引号
-        item.path.replace(/\\/g, '/'),         // 标准化为Unix路径
-      ]
-      
-      console.log('将尝试的路径列表:', pathsToTry)
-      
-      let lastError: Error | null = null
-      let success = false
-      
-      for (const pathToTry of pathsToTry) {
-        try {
-          console.log(`尝试路径: "${pathToTry}"`)
-          
-          // 方案1：先检查文件是否存在（如果权限允许）
-          try {
-            console.log('检查文件是否存在...')
-            const fileExists = await exists(pathToTry)
-            console.log('文件存在性检查结果:', fileExists)
-            
-            if (!fileExists) {
-              console.log('文件不存在，尝试下一个路径格式')
-              continue
-            }
-          } catch (existsErr) {
-            console.log('文件存在性检查失败，直接尝试读取文件:', existsErr)
-            // 如果 exists 权限不够，直接尝试读取文件
-          }
-          
-          // 文件存在或跳过检查，读取文件
-          console.log('开始读取文件...')
-          const fileData = await readFile(pathToTry)
-          console.log('文件读取成功，大小:', fileData.length, '字节')
-          
-          // 创建File对象
-          const file = new File([fileData], item.name, { type: 'application/pdf' })
-          selectedFile.value = file
-          
-          // 更新历史记录时间并移到最前面
-          item.openTime = Date.now()
-          const index = pdfHistory.value.findIndex(h => h.id === item.id)
-          if (index > 0) {
-            pdfHistory.value.splice(index, 1)
-            pdfHistory.value.unshift(item)
-            savePdfHistory()
-          }
-          
-          console.log('成功重新打开PDF:', item.name, '使用路径:', pathToTry)
-          success = true
-          break
-          
-        } catch (fileErr) {
-          console.log(`路径 "${pathToTry}" 失败:`, fileErr)
-          lastError = fileErr as Error
-          continue
-        }
-      }
-      
-      if (!success) {
-        console.error('所有路径格式都失败了')
-        console.error('最后的错误:', lastError)
+      try {
+        // 直接通过路径读取文件
+        const fileData = await readFile(item.path)
         
-        // 根据错误类型给出更友好的提示
-        let errorMessage = `无法访问文件: ${item.path}`
-        const errorMsg = lastError?.message?.toLowerCase() || ''
+        // 创建File对象
+        const file = new File([fileData], item.name, { type: 'application/pdf' })
+        selectedFile.value = file
         
-        if (errorMsg.includes('not found') || errorMsg.includes('no such file')) {
-          errorMessage = `文件不存在: ${item.path}\n\n可能的原因：\n• 文件已被移动或删除\n• 文件路径包含特殊字符`
-        } else if (errorMsg.includes('permission') || errorMsg.includes('access')) {
-          errorMessage = `没有权限访问文件: ${item.path}`
-        } else if (errorMsg.includes('directory')) {
-          errorMessage = `文件路径无效: ${item.path}`
+        // 更新历史记录时间并移到最前面
+        item.openTime = Date.now()
+        const index = pdfHistory.value.findIndex(h => h.id === item.id)
+        if (index > 0) {
+          pdfHistory.value.splice(index, 1)
+          pdfHistory.value.unshift(item)
+          savePdfHistory()
         }
         
+        console.log('成功重新打开PDF:', item.name)
+        
+      } catch (fileErr) {
+        // 文件可能已被移动或删除，显示确认对话框
         retryDialogData.value = {
           item,
-          message: errorMessage
+          message: `无法找到文件: ${item.path}`
         }
         showRetryDialog.value = true
       }
@@ -571,129 +512,36 @@ const handleReopenPdf = async (item: PdfHistoryItem) => {
   }
 }
 
-const deletePdfHistory = async (id: string) => {
-  // 找到要删除的项目
-  const itemToDelete = pdfHistory.value.find(item => item.id === id)
-  
-  // 如果是缓存文件，尝试删除物理文件
-  if (itemToDelete && window.__TAURI_INTERNALS__) {
-    try {
-      const { appCacheDir } = await import('@tauri-apps/api/path')
-      const { remove, exists } = await import('@tauri-apps/plugin-fs')
-      
-      const cacheDir = await appCacheDir()
-      const pdfsDir = `${cacheDir}\\pdfs`
-      
-      // 检查是否是缓存文件（路径包含缓存目录）
-      if (itemToDelete.path.includes(pdfsDir)) {
-        const fileExists = await exists(itemToDelete.path)
-        if (fileExists) {
-          await remove(itemToDelete.path)
-          console.log('已删除缓存文件:', itemToDelete.path)
-        }
-      }
-    } catch (err) {
-      console.error('删除缓存文件失败:', err)
-      // 继续删除历史记录，即使文件删除失败
-    }
-  }
-  
-  // 从历史记录中删除
+const deletePdfHistory = (id: string) => {
   pdfHistory.value = pdfHistory.value.filter(item => item.id !== id)
   savePdfHistory()
 }
 
-const clearPdfHistory = async () => {
+const clearPdfHistory = () => {
   // 子组件已经确认过了，这里直接清空
   console.log('清空PDF历史记录，当前记录数：', pdfHistory.value.length)
-  
-  // 如果在Tauri环境中，清理所有缓存文件
-  if (window.__TAURI_INTERNALS__) {
-    try {
-      const { appCacheDir } = await import('@tauri-apps/api/path')
-      const { remove, exists } = await import('@tauri-apps/plugin-fs')
-      
-      const cacheDir = await appCacheDir()
-      const pdfsDir = `${cacheDir}\\pdfs`
-      
-      // 删除所有缓存的PDF文件
-      for (const item of pdfHistory.value) {
-        if (item.path.includes(pdfsDir)) {
-          try {
-            const fileExists = await exists(item.path)
-            if (fileExists) {
-              await remove(item.path)
-              console.log('已删除缓存文件:', item.path)
-            }
-          } catch (err) {
-            console.error('删除缓存文件失败:', item.path, err)
-          }
-        }
-      }
-    } catch (err) {
-      console.error('清理缓存文件失败:', err)
-    }
-  }
-  
   pdfHistory.value = []
   savePdfHistory()
   console.log('PDF历史记录已清空')
 }
 
-const savePdfHistory = async () => {
+const savePdfHistory = () => {
   try {
-    if (window.__TAURI_INTERNALS__) {
-      // Tauri环境，使用后端命令保存
-      const { invoke } = await import('@tauri-apps/api/core')
-      
-      const historyData = {
-        items: pdfHistory.value
-      }
-      
-      console.log('通过后端保存历史记录:', historyData)
-      await invoke('set_pdf_history', { history: historyData })
-      console.log('历史记录保存成功')
-    } else {
-      // 浏览器环境，回退到localStorage
-      localStorage.setItem('pdf-reader-pdf-history', JSON.stringify(pdfHistory.value))
-    }
+    localStorage.setItem('pdf-reader-pdf-history', JSON.stringify(pdfHistory.value))
   } catch (error) {
     console.error('保存PDF历史记录失败:', error)
-    // 如果后端保存失败，尝试localStorage作为备用
-    try {
-      localStorage.setItem('pdf-reader-pdf-history', JSON.stringify(pdfHistory.value))
-      console.log('已回退到localStorage保存')
-    } catch (localStorageError) {
-      console.error('localStorage保存也失败:', localStorageError)
-    }
   }
 }
 
-const loadPdfHistory = async () => {
+const loadPdfHistory = () => {
   try {
-    if (window.__TAURI_INTERNALS__) {
-      // Tauri环境，使用后端命令加载
-      const { invoke } = await import('@tauri-apps/api/core')
-      
-      console.log('通过后端加载历史记录')
-      const historyData = await invoke<{ items: PdfHistoryItem[] }>('get_pdf_history')
-      pdfHistory.value = historyData.items
-      console.log('从后端加载历史记录成功，记录数:', pdfHistory.value.length)
-      return
+    const saved = localStorage.getItem('pdf-reader-pdf-history')
+    if (saved) {
+      pdfHistory.value = JSON.parse(saved)
     }
   } catch (error) {
-    console.error('从后端加载PDF历史记录失败:', error)
-  }
-  
-  // 回退到localStorage
-  try {
-    const stored = localStorage.getItem('pdf-reader-pdf-history')
-    if (stored) {
-      pdfHistory.value = JSON.parse(stored)
-      console.log('从localStorage加载历史记录成功，记录数:', pdfHistory.value.length)
-    }
-  } catch (error) {
-    console.error('从localStorage加载历史记录失败:', error)
+    console.error('加载PDF历史记录失败:', error)
+    pdfHistory.value = []
   }
 }
 
@@ -736,7 +584,7 @@ const handleRetryConfirm = async () => {
       selectedFile.value = file
       
       // 更新历史记录中的路径
-      item.path = newPath
+      item.path = normalizePath(newPath)
       item.openTime = Date.now()
       const index = pdfHistory.value.findIndex(h => h.id === item.id)
       if (index > 0) {
@@ -842,49 +690,8 @@ onMounted(async () => {
   }
   
   // 加载PDF历史记录
-  await loadPdfHistory()
+  loadPdfHistory()
   console.log('PDF历史记录加载完成')
-  
-  // 设置AI服务事件监听
-  aiService.on('streamMessage', (data: { id: string; content: string }) => {
-    streamingMessage.value = data.content
-  })
-  
-  aiService.on('streamComplete', (data: { id: string; content: string }) => {
-    // 流式输出完成时，添加到聊天消息
-    const aiMessage: ChatMessage = {
-      id: data.id,
-      role: 'assistant',
-      content: data.content,
-      timestamp: Date.now()
-    }
-    chatMessages.value.push(aiMessage)
-    streamingMessage.value = ''
-  })
-  
-  aiService.on('streamError', (error: string) => {
-    setError(error)
-    streamingMessage.value = ''
-  })
-  
-  // 翻译相关事件监听
-  aiService.on('streamTranslation', (data: { id: string; content: string }) => {
-    streamingTranslation.value = data.content
-  })
-  
-  aiService.on('translationComplete', (data: { id: string; content: string }) => {
-    // 流式翻译完成时，设置最终翻译结果
-    translationState.translatedText = data.content
-    streamingTranslation.value = ''
-    translationState.isTranslating = false
-  })
-  
-  aiService.on('translationError', (error: string) => {
-    setError(error)
-    streamingTranslation.value = ''
-    translationState.isTranslating = false
-    translationState.error = error
-  })
   
   // 等待一小段时间确保所有组件都已渲染
   await new Promise(resolve => setTimeout(resolve, 100))

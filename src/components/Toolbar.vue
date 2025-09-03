@@ -4,7 +4,6 @@
       <button @click="selectFile" class="custom-file-upload">
         选择 PDF 文件
       </button>
-      
       <!-- 保留隐藏的input作为浏览器环境的fallback -->
       <input 
         type="file" 
@@ -80,17 +79,7 @@ const selectFile = async () => {
       
       if (selected) {
         const filePath = selected as string
-        console.log('原始文件路径:', filePath)
-        console.log('文件路径长度:', filePath.length)
-        console.log('路径中是否包含空格:', filePath.includes(' '))
-        console.log('路径字符编码:', [...filePath].map(c => c.charCodeAt(0)).join(','))
-        
-        // 标准化Windows路径
-        const normalizedPath = filePath.replace(/\//g, '\\')
-        console.log('标准化后的路径:', normalizedPath)
-        
         const fileName = filePath.split(/[/\\]/).pop() || 'unknown.pdf'
-        console.log('提取的文件名:', fileName)
         
         // 读取文件内容
         const fileData = await readFile(filePath)
@@ -98,7 +87,7 @@ const selectFile = async () => {
         // 创建File对象
         const file = new File([fileData], fileName, { type: 'application/pdf' })
         
-        // 发出事件，同时传递File对象和原始路径
+        // 发出事件，同时传递File对象和文件路径
         emit('file-selected', file, filePath)
       }
     } catch (err) {

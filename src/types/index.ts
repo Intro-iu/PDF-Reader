@@ -61,15 +61,3 @@ export interface OutlineItem {
   id?: string; // 智能生成目录的唯一标识
   children?: OutlineItem[];
 }
-
-export interface PdfHistoryItem {
-  id: string;
-  name: string;
-  path: string;
-  openTime: number;
-  totalPages?: number;
-}
-
-export interface PdfHistory {
-  items: PdfHistoryItem[];
-}

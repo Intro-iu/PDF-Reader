@@ -46,7 +46,6 @@ const settings = reactive<AppConfig>({
 });
 
 const isModalOpen = ref(false);
-const showPassword = ref(false);
 const editingModel = reactive<Omit<AiModel, 'id'>>({
     name: '',
     modelId: '',
@@ -402,165 +401,30 @@ function cancelImportConfig() {
             <!-- 模型添加/编辑弹窗 -->
             <div v-if="isModalOpen" id="ai-model-modal" class="modal" @click.self="isModalOpen = false">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>
-                            <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2L2 7V10C2 16 6 20.9 12 22C18 20.9 22 16 22 10V7L12 2Z"/>
-                            </svg>
-                            添加AI模型
-                        </h3>
-                        <button class="close-btn" @click="isModalOpen = false" title="关闭">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z"/>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <form @submit.prevent="handleFormSubmit" class="modal-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="modal-model-name">
-                                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 12C14.21 12 16 10.21 16 8S14.21 4 12 4 8 5.79 8 8 9.79 12 12 12M12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"/>
-                                    </svg>
-                                    模型名称
-                                    <span class="required-star">*</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    id="modal-model-name" 
-                                    v-model="editingModel.name" 
-                                    required 
-                                    placeholder="请输入模型名称"
-                                    class="form-input"
-                                >
-                            </div>
+                    <span class="close" @click="isModalOpen = false">&times;</span>
+                    <h3>添加AI模型</h3>
+                    <form @submit.prevent="handleFormSubmit">
+                        <div class="form-group">
+                            <label for="modal-model-name">模型名称<span class="required-star">*</span></label>
+                            <input type="text" id="modal-model-name" v-model="editingModel.name" required>
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="modal-model-id">
-                                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                                    </svg>
-                                    模型标识
-                                    <span class="required-star">*</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    id="modal-model-id" 
-                                    v-model="editingModel.modelId" 
-                                    required 
-                                    placeholder="如: gpt-3.5-turbo, deepseek-chat"
-                                    class="form-input"
-                                >
-                            </div>
+                        <div class="form-group">
+                            <label for="modal-model-id">模型标识<span class="required-star">*</span></label>
+                            <input type="text" id="modal-model-id" v-model="editingModel.modelId" required placeholder="如: gpt-3.5-turbo">
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="modal-api-endpoint">
-                                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M10.59,13.41C11,13.8 11,14.4 10.59,14.81C10.2,15.2 9.6,15.2 9.19,14.81L7.05,12.67L9.19,10.53C9.6,10.12 10.2,10.12 10.59,10.53C11,10.94 11,11.54 10.59,11.95L10.59,13.41M14.81,13.41L13.41,14.81C13,15.2 12.4,15.2 12,14.81C11.6,14.4 11.6,13.8 12,13.41L14.14,11.27L12,9.13C11.6,8.72 11.6,8.12 12,7.71C12.4,7.3 13,7.3 13.41,7.71L15.55,9.85L13.41,12L14.81,13.41M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                                    </svg>
-                                    API端点
-                                    <span class="required-star">*</span>
-                                </label>
-                                <input 
-                                    type="url" 
-                                    id="modal-api-endpoint" 
-                                    v-model="editingModel.apiEndpoint" 
-                                    required 
-                                    placeholder="https://api.openai.com/v1/chat/completions"
-                                    class="form-input"
-                                >
-                            </div>
+                        <div class="form-group">
+                            <label for="modal-api-endpoint">API端点<span class="required-star">*</span></label>
+                            <input type="url" id="modal-api-endpoint" v-model="editingModel.apiEndpoint" required placeholder="https://api.example.com">
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="modal-api-key">
-                                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M7 14C5.9 14 5 13.1 5 12S5.9 10 7 10 9 10.9 9 12 8.1 14 7 14M12.6 10C11.8 7.7 9.6 6 7 6C3.7 6 1 8.7 1 12S3.7 18 7 18C9.6 18 11.8 16.3 12.6 14H16V18H20V14H23V10H12.6Z"/>
-                                    </svg>
-                                    API密钥
-                                    <span class="required-star">*</span>
-                                </label>
-                                <div class="password-input-container">
-                                    <input 
-                                        :type="showPassword ? 'text' : 'password'" 
-                                        id="modal-api-key" 
-                                        v-model="editingModel.apiKey" 
-                                        required
-                                        placeholder="请输入API密钥"
-                                        class="form-input password-input"
-                                    >
-                                    <button 
-                                        type="button" 
-                                        class="password-toggle"
-                                        @click="showPassword = !showPassword"
-                                        :title="showPassword ? '隐藏密钥' : '显示密钥'"
-                                    >
-                                        <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.09L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.76,7.13 11.37,7 12,7Z"/>
-                                        </svg>
-                                        <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div class="input-hint">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                                    </svg>
-                                    您的API密钥将被安全保存，仅用于与AI服务通信
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label for="modal-api-key">API密钥<span class="required-star">*</span></label>
+                            <input type="password" id="modal-api-key" v-model="editingModel.apiKey" required>
                         </div>
-
-                        <div class="form-row capabilities-row">
-                            <div class="capabilities-group">
-                                <label class="capabilities-title">模型功能</label>
-                                <div class="checkbox-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" v-model="editingModel.supportsChat" class="checkbox-input">
-                                        <span class="checkbox-custom"></span>
-                                        <svg class="capability-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4A2,2 0 0,0 20,2M6,9V7H18V9H6M14,11V13H6V11H14M16,15H6V17H16V15Z"/>
-                                        </svg>
-                                        支持对话
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" v-model="editingModel.supportsTranslation" class="checkbox-input">
-                                        <span class="checkbox-custom"></span>
-                                        <svg class="capability-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12.87,15.07L11.18,15.07L11.18,7.98L17.02,7.98L17.02,9.42L12.87,9.42V15.07M2.5,5V8H9.5V5H2.5M2.5,10V13H9.5V10H2.5M2.5,15V18H9.5V15H2.5M11.18,18.8V17.35H17.02V18.8H11.18Z"/>
-                                        </svg>
-                                        支持翻译
-                                    </label>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" v-model="editingModel.supportsChat"> 支持对话</label>
+                            <label><input type="checkbox" v-model="editingModel.supportsTranslation"> 支持翻译</label>
                         </div>
-
-                        <div class="form-actions">
-                            <button 
-                                type="button" 
-                                class="btn-cancel" 
-                                @click="isModalOpen = false"
-                            >
-                                取消
-                            </button>
-                            <button 
-                                type="submit" 
-                                class="btn-confirm" 
-                                :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)"
-                            >
-                                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
-                                </svg>
-                                确认添加
-                            </button>
-                        </div>
+                        <button type="submit" class="btn-confirm" :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)">确认添加</button>
                     </form>
                 </div>
             </div>
@@ -1004,346 +868,51 @@ input[type="range"]::-webkit-slider-thumb {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1100;
-    animation: modalFadeIn 0.2s ease-out;
 }
-
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-    to {
-        opacity: 1;
-        backdrop-filter: blur(4px);
-    }
-}
-
 .modal-content {
     background: var(--surface-color);
-    border-radius: 12px;
-    width: 90vw;
-    max-width: 520px;
-    position: relative;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-    animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-    from {
-        transform: translateY(-20px) scale(0.95);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-.modal-header {
-    padding: 24px 24px 16px 24px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(var(--primary-color-rgb), 0.05) 100%);
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary-color);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.header-icon {
-    width: 20px;
-    height: 20px;
-    color: var(--primary-color);
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-    background: var(--hover-color);
-    color: var(--text-primary-color);
-}
-
-.close-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.modal-form {
     padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    border-radius: 8px;
+    width: 90vw;
+    max-width: 450px;
+    position: relative;
 }
-
-.form-row {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 24px;
 }
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-tertiary-color);
+    cursor: pointer;
 }
-
-.form-group label {
-    font-size: 14px;
-    font-weight: 500;
+.close:hover {
     color: var(--text-primary-color);
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
-
-.input-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--text-secondary-color);
+.form-group {
+    margin-bottom: 16px;
 }
-
 .required-star {
     color: var(--danger-color);
-    font-weight: 600;
+    margin-left: 4px;
 }
-
-.form-input {
-    padding: 12px 16px;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 14px;
-    background: var(--input-background);
-    color: var(--text-primary-color);
-    transition: all 0.2s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
-}
-
-.form-input::placeholder {
-    color: var(--text-tertiary-color);
-}
-
-.password-input-container {
-    position: relative;
-}
-
-.password-input {
-    padding-right: 48px;
-}
-
-.password-toggle {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary-color);
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.password-toggle:hover {
-    background: var(--hover-color);
-    color: var(--text-primary-color);
-}
-
-.password-toggle svg {
-    width: 16px;
-    height: 16px;
-}
-
-.input-hint {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-secondary-color);
-    margin-top: 4px;
-}
-
-.input-hint svg {
-    width: 14px;
-    height: 14px;
-    color: var(--primary-color);
-    flex-shrink: 0;
-}
-
-.capabilities-row {
-    background: rgba(var(--primary-color-rgb), 0.05);
-    border: 1px solid rgba(var(--primary-color-rgb), 0.1);
-    border-radius: 8px;
-    padding: 16px;
-}
-
-.capabilities-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.capabilities-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary-color);
-    margin: 0;
-}
-
-.checkbox-group {
-    display: flex;
-    gap: 20px;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-primary-color);
-    transition: all 0.2s ease;
-}
-
-.checkbox-label:hover {
-    color: var(--primary-color);
-}
-
-.checkbox-input {
-    display: none;
-}
-
-.checkbox-custom {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
-    position: relative;
-    transition: all 0.2s ease;
-}
-
-.checkbox-input:checked + .checkbox-custom {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.checkbox-input:checked + .checkbox-custom::after {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 2px;
-    width: 4px;
-    height: 8px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.capability-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--text-secondary-color);
-}
-
-.checkbox-label:hover .capability-icon {
-    color: var(--primary-color);
-}
-
-.form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 8px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-}
-
-.btn-cancel {
-    padding: 10px 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--surface-color);
-    color: var(--text-primary-color);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-cancel:hover {
-    background: var(--hover-color);
-    border-color: var(--text-secondary-color);
-}
-
 .btn-confirm {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background: var(--primary-color);
+    width: 100%;
+    background-color: var(--primary-color);
     color: white;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
-
-.btn-confirm:hover:not(:disabled) {
-    background: var(--primary-hover-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
-}
-
 .btn-confirm:disabled {
-    background: var(--disabled-color);
+    background-color: var(--disabled-color);
     cursor: not-allowed;
-    opacity: 0.6;
-    transform: none;
-    box-shadow: none;
-}
-
-.btn-icon {
-    width: 16px;
-    height: 16px;
 }
 
 /* --- Notification --- */

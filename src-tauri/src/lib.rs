@@ -1,5 +1,4 @@
 mod config;
-mod pdf_history;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,11 +18,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       config::get_config,
       config::set_config,
-      config::config_file_exists,
-      pdf_history::get_pdf_history,
-      pdf_history::set_pdf_history,
-      pdf_history::pdf_history_file_exists,
-      pdf_history::add_pdf_to_history
+      config::config_file_exists
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

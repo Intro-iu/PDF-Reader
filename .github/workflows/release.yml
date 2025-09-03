@@ -1,0 +1,117 @@
+name: Release Multi-Platform Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
+            arch: 'Apple Silicon (M1/M2)'
+          - platform: 'macos-latest'
+            args: '--target x86_64-apple-darwin'
+            target: 'x86_64-apple-darwin'
+            arch: 'Intel'
+          - platform: 'ubuntu-22.04'
+            args: '--target x86_64-unknown-linux-gnu'
+            target: 'x86_64-unknown-linux-gnu'
+            arch: 'x64'
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+            target: 'x86_64-pc-windows-msvc'
+            arch: 'x64'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri application
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'PDF Reader v__VERSION__'
+          releaseBody: |
+            ## 🎉 PDF Reader ${{ github.ref_name }}
+            
+            一个功能丰富的现代 PDF 阅读器，基于 Vue 3 和 Tauri 构建。
+            
+            ### 📦 下载指南
+            
+            **选择适合你系统的版本：**
+            
+            - **🪟 Windows**: 下载 `.msi` 文件，双击安装
+            - **🍎 macOS**: 
+              - Intel 芯片 Mac: 下载 `x64.dmg`
+              - Apple Silicon (M1/M2/M3): 下载 `aarch64.dmg`
+            - **🐧 Linux**: 
+              - Ubuntu/Debian: 下载 `.deb` 文件
+              - 其他发行版: 下载 `.AppImage` 文件
+            
+            ### ✨ 主要功能
+            - 📖 **智能 PDF 阅读** - 多格式支持，智能缩放
+            - 📝 **智能目录生成** - AI 驱动的目录识别
+            - 🌙 **夜间模式** - 护眼的深色主题
+            - 📋 **历史记录管理** - 记住阅读进度
+            - 🔍 **AI 翻译** - 多语言智能翻译
+            - 💬 **PDF 问答** - 基于内容的智能对话
+            - ⚙️ **跨平台兼容** - Windows、macOS、Linux
+            
+            ### 🔧 技术架构
+            - **前端**: Vue 3 + TypeScript + Vite
+            - **后端**: Tauri 2.x + Rust
+            - **PDF 引擎**: PDF.js
+            - **AI 集成**: 支持多种 AI 模型
+            
+            ### 📝 安装说明
+            1. 从上方 Assets 中下载适合你系统的安装包
+            2. Windows: 运行 `.msi` 文件
+            3. macOS: 打开 `.dmg` 文件，拖拽到应用程序文件夹
+            4. Linux: 安装 `.deb` 或直接运行 `.AppImage`
+            
+            ### 🐛 问题反馈
+            如遇到问题，请在 [GitHub Issues](https://github.com/ZeroHzzzz/PDF-Reader/issues) 中反馈。
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

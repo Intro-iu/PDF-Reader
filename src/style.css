@@ -1,0 +1,154 @@
+/* CSS Variables for theming */
+:root {
+    --primary-color: #007acc;
+    --primary-hover-color: #005a9e;
+    --background-color: #1e1e1e;
+    --surface-color: #252526;
+    --border-color: #3c3c3c;
+    --text-primary-color: #cccccc;
+    --text-secondary-color: #858585;
+    --input-background: #3c3c3c;
+    --input-border: #464647;
+    --input-focus-border: #007acc;
+    --welcome-color: #6c7086;
+    --user-message-bg: #2d2d30;
+    --ai-message-bg: #1e1e1e;
+    --hover-bg: #2a2d2e;
+    --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Liberation Sans", "Noto Sans", "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", "Menlo", "DejaVu Sans Mono", monospace;
+    --text-selection-color: #007bff;
+    --text-selection-opacity: 0.3;
+    
+    /* 平台适配 */
+    --border-radius: 4px;
+    --button-padding: 8px 16px;
+    --input-padding: 8px 12px;
+}
+
+/* macOS 特定样式 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+    :root {
+        --border-radius: 6px;
+        --button-padding: 6px 14px;
+    }
+}
+
+/* Linux 特定样式 */
+@supports (-moz-appearance: none) {
+    :root {
+        --border-radius: 3px;
+        --font-family: "Liberation Sans", "DejaVu Sans", system-ui, sans-serif;
+    }
+}
+
+/* Light mode theme */
+body.light-mode {
+    --primary-color: #007acc;
+    --primary-hover-color: #005a9e;
+    --background-color: #f3f4f6;
+    --surface-color: #ffffff;
+    --border-color: #e5e7eb;
+    --text-primary-color: #1f2937;
+    --text-secondary-color: #6b7280;
+    --input-background: #ffffff;
+    --input-border: #d1d5db;
+    --input-focus-border: #007acc;
+    --welcome-color: #9ca3af;
+    --user-message-bg: #f9fafb;
+    --ai-message-bg: #ffffff;
+    --hover-bg: #f3f4f6;
+}
+
+/* Global reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-primary-color);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Text selection styles */
+::selection {
+    background: rgba(from var(--text-selection-color) r g b / var(--text-selection-opacity));
+}
+
+/* Fallback for browsers that don't support rgba(from ...) */
+@supports not (background: rgba(from #000 r g b / 0.5)) {
+    ::selection {
+        background: rgba(0, 123, 255, var(--text-selection-opacity));
+    }
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary-color);
+}
+
+/* Button reset */
+button {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Input reset */
+input, textarea {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* 平台特定样式 */
+.platform-macos button {
+    border-radius: 6px;
+    font-weight: 400;
+}
+
+.platform-linux button {
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+}
+
+/* 不同平台的滚动条样式 */
+.platform-windows .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.platform-macos .scrollbar {
+    scrollbar-width: none;
+}
+
+.platform-linux .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-secondary-color) transparent;
+}

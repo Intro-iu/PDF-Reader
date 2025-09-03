@@ -1,0 +1,37 @@
+{
+  "name": "pdf-reader",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:build": "tauri build",
+    "tauri:build:debug": "tauri build --debug",
+    "tauri:bundle": "npm run build && tauri build",
+    "build:current": "npm run build && tauri build",
+    "build:windows": "npm run build && tauri build --target x86_64-pc-windows-msvc",
+    "build:linux": "npm run build && tauri build --target x86_64-unknown-linux-gnu",
+    "build:macos": "npm run build && tauri build --target x86_64-apple-darwin",
+    "build:macos-arm": "npm run build && tauri build --target aarch64-apple-darwin"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-fs": "^2.4.2",
+    "axios": "^1.11.0",
+    "pdfjs-dist": "^3.11.174",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/node": "^24.3.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vue-tsc": "^3.0.5"
+  }
+}

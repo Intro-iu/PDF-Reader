@@ -5,8 +5,8 @@
   "translateTargetLang": "zh",
   "autoSaveSettings": true,
   "enableSelectionTranslation": true,
-  "textSelectionColor": "#28a745",
+  "textSelectionColor": "#007bff",
   "selectionOpacity": 30,
   "chatPrompt": "你是一个专业的学术论文阅读助手。",
-  "translationPrompt": "翻译！"
+  "translationPrompt": "Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]"
 }

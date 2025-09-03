@@ -1,6 +1,7 @@
 '''<script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { reactive, onMounted, watch, ref } from 'vue';
+import ConfirmDialog from './ConfirmDialog.vue';
 
 // --- 类型定义 ---
 interface Props {
@@ -54,6 +55,10 @@ const editingModel = reactive<Omit<AiModel, 'id'>>({
     supportsTranslation: true
 });
 
+// 重置确认对话框状态
+const showResetConfirmDialog = ref(false);
+const showImportConfirmDialog = ref(false);
+
 const emit = defineEmits(['close', 'toggle-theme']);
 
 const props = withDefaults(defineProps<Props>(), {
@@ -99,24 +104,31 @@ async function saveSettings(isManual = false) {
 }
 
 function resetSettings() {
-    if (confirm('确定要重置所有设置吗？此操作将恢复为默认设置并保存。')) {
-        const defaultConfig = {
-            aiModels: [],
-            activeChatModel: '',
-            activeTranslateModel: '',
-            translateTargetLang: 'zh',
-            autoSaveSettings: true,
-            enableSelectionTranslation: true,
-            textSelectionColor: '#007bff',
-            selectionOpacity: 30,
-            chatPrompt: '你是一个专业的学术论文阅读助手。',
-            translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
-        };
-        Object.assign(settings, defaultConfig);
-        saveSettings(true); // 重置后立即保存到后端
-        applySettingsToDOM();
-        showNotification('设置已重置为默认值', 'info');
-    }
+    showResetConfirmDialog.value = true;
+}
+
+function confirmResetSettings() {
+    const defaultConfig = {
+        aiModels: [],
+        activeChatModel: '',
+        activeTranslateModel: '',
+        translateTargetLang: 'zh',
+        autoSaveSettings: true,
+        enableSelectionTranslation: true,
+        textSelectionColor: '#007bff',
+        selectionOpacity: 30,
+        chatPrompt: '你是一个专业的学术论文阅读助手。',
+        translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
+    };
+    Object.assign(settings, defaultConfig);
+    saveSettings(true); // 重置后立即保存到后端
+    applySettingsToDOM();
+    showNotification('设置已重置为默认值', 'info');
+    showResetConfirmDialog.value = false;
+}
+
+function cancelResetSettings() {
+    showResetConfirmDialog.value = false;
 }
 
 function generateModelId() {
@@ -210,11 +222,17 @@ async function exportConfig() {
 }
 
 async function importConfig() {
-    // 导入现在是从应用配置目录加载
-    if (confirm('这将覆盖当前设置，确定要从文件加载配置吗？')) {
-        await loadSettings();
-        showNotification('配置已从文件加载', 'success');
-    }
+    showImportConfirmDialog.value = true;
+}
+
+async function confirmImportConfig() {
+    await loadSettings();
+    showNotification('配置已从文件加载', 'success');
+    showImportConfirmDialog.value = false;
+}
+
+function cancelImportConfig() {
+    showImportConfirmDialog.value = false;
 }
 
 </script>
@@ -415,6 +433,30 @@ async function importConfig() {
             <div v-if="notification.show" :class="`notification notification-${notification.type}`">
                 {{ notification.message }}
             </div>
+
+            <!-- 重置设置确认对话框 -->
+            <ConfirmDialog
+                v-model:show="showResetConfirmDialog"
+                title="确认重置设置"
+                message="确定要重置所有设置吗？此操作将恢复为默认设置并保存。"
+                warning="此操作不可撤销！"
+                confirm-text="重置"
+                :is-danger="true"
+                @confirm="confirmResetSettings"
+                @cancel="cancelResetSettings"
+            />
+
+            <!-- 导入配置确认对话框 -->
+            <ConfirmDialog
+                v-model:show="showImportConfirmDialog"
+                title="确认导入配置"
+                message="这将覆盖当前设置，确定要从文件加载配置吗？"
+                warning="当前的设置将被替换！"
+                confirm-text="导入"
+                :is-danger="true"
+                @confirm="confirmImportConfig"
+                @cancel="cancelImportConfig"
+            />
         </div>
     </div>
 </template>

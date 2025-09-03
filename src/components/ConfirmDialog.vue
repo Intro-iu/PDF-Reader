@@ -104,7 +104,7 @@ const handleOverlayClick = () => {
 
 .dialog-header h4 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text-primary-color);
   font-size: 18px;
   font-weight: 600;
 }
@@ -115,7 +115,7 @@ const handleOverlayClick = () => {
 
 .dialog-content p {
   margin: 0 0 12px 0;
-  color: var(--text-primary);
+  color: var(--text-primary-color);
   line-height: 1.5;
 }
 
@@ -155,12 +155,12 @@ const handleOverlayClick = () => {
 
 .cancel-btn {
   background: var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-primary-color);
   border: 1px solid var(--border-color);
 }
 
 .cancel-btn:hover {
-  background: var(--text-secondary);
+  background: var(--text-secondary-color);
   color: var(--background-color);
 }
 

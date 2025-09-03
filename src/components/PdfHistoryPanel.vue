@@ -163,7 +163,7 @@ const formatTime = (timestamp: number) => {
   display: flex;
   flex-direction: column;
   background: var(--sidebar-bg);
-  color: var(--text-primary);
+  color: var(--text-primary-color);
 }
 
 .panel-header {
@@ -189,7 +189,7 @@ const formatTime = (timestamp: number) => {
 .clear-button {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
@@ -201,7 +201,7 @@ const formatTime = (timestamp: number) => {
 
 .clear-button:hover:not(:disabled) {
   background: var(--hover-bg);
-  color: var(--text-primary);
+  color: var(--text-primary-color);
 }
 
 .clear-button:disabled {
@@ -229,7 +229,7 @@ const formatTime = (timestamp: number) => {
   justify-content: center;
   padding: 32px 16px;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .empty-history svg {
@@ -258,7 +258,7 @@ const formatTime = (timestamp: number) => {
 }
 
 .history-tip small {
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   font-size: 12px;
 }
 
@@ -323,15 +323,15 @@ const formatTime = (timestamp: number) => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .item-time {
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .item-pages {
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
 }
 
 .item-actions {
@@ -342,7 +342,7 @@ const formatTime = (timestamp: number) => {
 .delete-button {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -364,7 +364,7 @@ const formatTime = (timestamp: number) => {
 
 .item-path {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-secondary-color);
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -387,6 +387,6 @@ const formatTime = (timestamp: number) => {
 }
 
 .history-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: var(--text-secondary-color);
 }
 </style>

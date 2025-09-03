@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import Toolbar from './components/Toolbar.vue'
-import PdfViewer from './components/PdfViewer_new.vue'
+import PdfViewer from './components/PdfViewer.vue'
 import Sidebar from './components/Sidebar.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'

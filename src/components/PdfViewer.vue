@@ -1,40 +1,7 @@
 <template>
   <div class="pdf-viewer-container">
-    <!-- PDF缩放控制器 -->
-    <div v-if="pdfDoc" class="pdf-zoom-control">
-      <div class="zoom-control-handle">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
-        </svg>
-      </div>
-      <div class="zoom-slider-container">
-        <input 
-          type="range" 
-          class="zoom-slider" 
-          :min="minScale * 100"
-          :max="maxScale * 100"
-          :value="currentScale * 100"
-          @input="handleZoomChange"
-        >
-        <span class="zoom-label">{{ Math.round(currentScale * 100) }}%</span>
-      </div>
-      
-      <!-- PDF 夜间模式切换 -->
-      <button 
-        class="pdf-dark-mode-toggle"
-        @click="togglePdfDarkMode"
-        :title="pdfDarkMode ? '关闭 PDF 夜间模式' : '开启 PDF 夜间模式'"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path v-if="pdfDarkMode" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
-          <path v-else d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-      </button>
-    </div>
-
     <!-- PDF内容区域 -->
-    <div class="pdf-content" @mouseup="handleTextSelection">
+    <div class="pdf-content" @mouseup="handleTextSelection" @contextmenu="handleContextMenu">
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
@@ -52,41 +19,113 @@
       </div>
     </div>
 
+    <!-- 右键上下文菜单 -->
+    <div 
+      v-if="contextMenu.show" 
+      class="context-menu"
+      :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      @click.stop
+    >
+      <div class="context-menu-item" @click="handleTranslateAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+        </svg>
+        翻译选中文本
+      </div>
+      <div class="context-menu-item" @click="handleChatAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+        AI 分析
+      </div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" @click="handleCopyAction">
+        <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+        </svg>
+        复制文本
+      </div>
+    </div>
+
     <!-- 页面导航 -->
     <div v-if="pdfDoc && totalPages > 1" class="page-navigation">
-      <button 
-        @click="goToPage(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        class="nav-button"
-      >
-        上一页
-      </button>
-      
-      <div class="page-input-container">
-        <input 
-          type="number" 
-          :value="currentPage"
-          :min="1"
-          :max="totalPages"
-          @input="handlePageInput"
-          class="page-input"
+      <div class="nav-controls">
+        <button 
+          @click="goToPage(currentPage - 1)"
+          :disabled="currentPage <= 1"
+          class="nav-button"
         >
-        <span class="page-total">/ {{ totalPages }}</span>
+          上一页
+        </button>
+        
+        <div class="page-input-container">
+          <input 
+            type="number" 
+            :value="currentPage"
+            :min="1"
+            :max="totalPages"
+            @input="handlePageInput"
+            class="page-input"
+          >
+          <span class="page-total">/ {{ totalPages }}</span>
+        </div>
+        
+        <button 
+          @click="goToPage(currentPage + 1)"
+          :disabled="currentPage >= totalPages"
+          class="nav-button"
+        >
+          下一页
+        </button>
       </div>
       
-      <button 
-        @click="goToPage(currentPage + 1)"
-        :disabled="currentPage >= totalPages"
-        class="nav-button"
-      >
-        下一页
-      </button>
+      <!-- PDF缩放控制器 -->
+      <div class="pdf-zoom-control">
+        <div class="zoom-control-handle">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
+          </svg>
+        </div>
+        <button 
+          class="fit-page-btn" 
+          @click="fitToPage"
+          title="适合页面大小"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 9h6v6h-6zm2 2v2h2v-2zm9-7h-6v2h4v4h2zm-2 16h-4v2h6v-6h-2zm-16-4h2v-4h-2zm0-6h2v-4h-2zm2-6h4v-2h-6v6h2z"/>
+          </svg>
+        </button>
+        <div class="zoom-slider-container">
+          <input 
+            type="range" 
+            class="zoom-slider" 
+            :min="minScale * 100"
+            :max="maxScale * 100"
+            :value="currentScale * 100"
+            @input="handleZoomChange"
+          >
+          <span class="zoom-label">{{ Math.round(currentScale * 100) }}%</span>
+        </div>
+        
+        <!-- PDF 夜间模式切换 -->
+        <button 
+          class="pdf-dark-mode-toggle"
+          @click="togglePdfDarkMode"
+          :title="pdfDarkMode ? '关闭 PDF 夜间模式' : '开启 PDF 夜间模式'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path v-if="pdfDarkMode" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+            <path v-else d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { PdfManager } from '@/utils/pdf'
 import type { OutlineItem } from '@/types'
 
@@ -98,10 +137,10 @@ const emit = defineEmits<{
   'pdf-loaded': [{ totalPages: number }]
   'page-changed': [number]
   'text-selected': [string]
-  'outline-loaded': [OutlineItem[]]
   'error': [string]
   'translate-text': [string]
   'chat-with-text': [string]
+  'outline-loaded': [OutlineItem[]]
 }>()
 
 // PDF 相关
@@ -110,6 +149,7 @@ const pdfDoc = ref<any>(null)
 const pdfPagesContainer = ref<HTMLElement | null>(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
+const pdfDarkMode = ref(false)
 const currentScale = ref(1.0)
 const minScale = ref(0.25)
 const maxScale = ref(4.0)
@@ -119,7 +159,14 @@ const error = ref<string | null>(null)
 // 缩放相关变量
 const isRendering = ref(false)
 const renderTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-const pdfDarkMode = ref(false)
+
+// 右键菜单相关
+const contextMenu = reactive({
+  show: false,
+  x: 0,
+  y: 0
+})
+const selectedTextForMenu = ref('')
 
 const loadPdf = async (file: File) => {
   if (!file) return
@@ -296,6 +343,38 @@ const handleZoomChange = (event: Event) => {
   queueRender(newScale)
 }
 
+const fitToPage = async () => {
+  if (!pdfDoc.value || !pdfPagesContainer.value) return
+  
+  try {
+    // 使用 pdfManager 获取第一页的尺寸
+    const dimensions = await pdfManager.getPageDimensions(1)
+    
+    // 获取容器尺寸
+    const container = pdfPagesContainer.value
+    const containerWidth = container.clientWidth - 40 // 减去padding
+    const containerHeight = container.clientHeight - 40 // 减去padding
+    
+    // 计算适合宽度和高度的缩放比例
+    const scaleForWidth = containerWidth / dimensions.width
+    const scaleForHeight = containerHeight / dimensions.height
+    
+    // 选择较小的缩放比例，确保整个页面都能显示
+    const targetScale = Math.min(scaleForWidth, scaleForHeight, maxScale.value)
+    
+    // 确保不低于最小缩放比例
+    const finalScale = Math.max(targetScale, minScale.value)
+    
+    // 应用新的缩放比例
+    currentScale.value = finalScale
+    queueRender(finalScale)
+    
+    console.log(`适合页面缩放: ${Math.round(finalScale * 100)}%`)
+  } catch (error) {
+    console.error('计算适合页面缩放时出错:', error)
+  }
+}
+
 const goToPage = (pageNum: number) => {
   if (pageNum >= 1 && pageNum <= totalPages.value) {
     currentPage.value = pageNum
@@ -315,56 +394,88 @@ const goToPage = (pageNum: number) => {
 // 加载 PDF 目录
 const loadPdfOutline = async (pdfDocument: any): Promise<OutlineItem[]> => {
   try {
+    // 1. 首先尝试获取内嵌目录
     const outline = await pdfDocument.getOutline()
-    if (!outline || outline.length === 0) {
-      return []
+    if (outline && outline.length > 0) {
+      console.log('找到内嵌目录，解析中...')
+      return await parseEmbeddedOutline(outline, pdfDocument)
     }
     
-    const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
-      let pageNum = 1
-      
-      // 尝试获取目标页面
-      if (item.dest) {
-        try {
-          const dest = await pdfDocument.getDestination(item.dest)
-          if (dest && dest[0]) {
-            const pageRef = dest[0]
-            const pageIndex = await pdfDocument.getPageIndex(pageRef)
-            pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
-          }
-        } catch (err) {
-          console.warn('无法获取目录项页面:', err)
-        }
-      }
-      
-      const outlineItem: OutlineItem = {
-        id: `outline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        title: item.title || '无标题',
-        page: pageNum,
-        level
-      }
-      
-      // 递归处理子项
-      if (item.items && item.items.length > 0) {
-        outlineItem.children = []
-        for (const child of item.items) {
-          const childItem = await parseOutlineItem(child, level + 1)
-          outlineItem.children.push(childItem)
-        }
-      }
-      
-      return outlineItem
-    }
+    // 2. 如果没有内嵌目录，返回空数组，不自动生成智能目录
+    console.log('未找到内嵌目录')
+    return []
     
-    const result: OutlineItem[] = []
-    for (const item of outline) {
-      const outlineItem = await parseOutlineItem(item)
-      result.push(outlineItem)
-    }
-    
-    return result
   } catch (error) {
     console.error('解析 PDF 目录失败:', error)
+    return []
+  }
+}
+
+// 解析内嵌目录
+const parseEmbeddedOutline = async (outline: any[], pdfDocument: any): Promise<OutlineItem[]> => {
+  const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
+    let pageNum = 1
+    
+    // 尝试获取目标页面
+    if (item.dest) {
+      try {
+        const dest = await pdfDocument.getDestination(item.dest)
+        if (dest && dest[0]) {
+          const pageRef = dest[0]
+          const pageIndex = await pdfDocument.getPageIndex(pageRef)
+          pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
+        }
+      } catch (err) {
+        console.warn('无法获取目录项页面:', err)
+      }
+    }
+    
+    const outlineItem: OutlineItem = {
+      id: `outline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: item.title || '无标题',
+      page: pageNum,
+      level
+    }
+    
+    // 递归处理子项
+    if (item.items && item.items.length > 0) {
+      outlineItem.children = []
+      for (const child of item.items) {
+        const childItem = await parseOutlineItem(child, level + 1)
+        outlineItem.children.push(childItem)
+      }
+    }
+    
+    return outlineItem
+  }
+  
+  const result: OutlineItem[] = []
+  for (const item of outline) {
+    const outlineItem = await parseOutlineItem(item)
+    result.push(outlineItem)
+  }
+  
+  return result
+}
+
+// 智能生成目录
+const generateSmartOutlineItems = async (): Promise<OutlineItem[]> => {
+  try {
+    const smartOutline = await pdfManager.generateSmartOutline()
+    
+    // 转换为 OutlineItem 格式
+    const outlineItems: OutlineItem[] = smartOutline.map(item => ({
+      title: item.title,
+      page: item.page,
+      level: item.level,
+      id: item.id
+    }))
+    
+    console.log(`智能目录生成完成: ${outlineItems.length} 项`)
+    return outlineItems
+    
+  } catch (error) {
+    console.error('智能目录生成失败:', error)
     return []
   }
 }
@@ -375,18 +486,112 @@ const handlePageInput = (event: Event) => {
   goToPage(pageNum)
 }
 
+const togglePdfDarkMode = () => {
+  pdfDarkMode.value = !pdfDarkMode.value
+  // 保存到本地存储
+  localStorage.setItem('pdfDarkMode', pdfDarkMode.value.toString())
+}
+
+// 检查文本选择是否在textLayer中
+const isSelectionInTextLayer = (selection: Selection): boolean => {
+  if (!selection.rangeCount) return false
+  
+  const range = selection.getRangeAt(0)
+  let currentElement: Node | null = range.commonAncestorContainer
+  
+  // 如果是文本节点，获取其父元素
+  if (currentElement.nodeType === Node.TEXT_NODE) {
+    currentElement = currentElement.parentElement
+  }
+  
+  // 向上遍历DOM树，查找是否在textLayer中
+  while (currentElement && currentElement !== document.body) {
+    if (currentElement instanceof Element && currentElement.classList && currentElement.classList.contains('textLayer')) {
+      return true
+    }
+    currentElement = currentElement.parentElement
+  }
+  
+  return false
+}
+
 const handleTextSelection = () => {
   const selection = window.getSelection()
   if (selection && selection.toString().trim()) {
     const selectedText = selection.toString().trim()
-    emit('text-selected', selectedText)
+    
+    // 只有在textLayer中的文本选择才触发翻译
+    if (isSelectionInTextLayer(selection)) {
+      emit('text-selected', selectedText)
+      selectedTextForMenu.value = selectedText
+    }
   }
 }
 
-const togglePdfDarkMode = () => {
-  pdfDarkMode.value = !pdfDarkMode.value
-  // 保存设置到 localStorage
-  localStorage.setItem('pdfDarkMode', pdfDarkMode.value.toString())
+// 右键菜单处理
+const handleContextMenu = (event: MouseEvent) => {
+  const selection = window.getSelection()
+  const selectedText = selection?.toString().trim()
+  
+  // 只有在textLayer中选中文本时才显示右键菜单
+  if (selectedText && selection && isSelectionInTextLayer(selection)) {
+    event.preventDefault()
+    selectedTextForMenu.value = selectedText
+    
+    // 计算菜单位置，确保不超出屏幕边界
+    const x = event.clientX
+    const y = event.clientY
+    const menuWidth = 200 // 预估菜单宽度
+    const menuHeight = 120 // 预估菜单高度
+    
+    contextMenu.x = x + menuWidth > window.innerWidth ? x - menuWidth : x
+    contextMenu.y = y + menuHeight > window.innerHeight ? y - menuHeight : y
+    contextMenu.show = true
+  }
+}
+
+const hideContextMenu = () => {
+  contextMenu.show = false
+  selectedTextForMenu.value = ''
+}
+
+// 处理点击事件，清空非textLayer的文本选择
+const handleDocumentClick = (_event: MouseEvent) => {
+  hideContextMenu()
+  
+  // 检查点击是否在textLayer外
+  const selection = window.getSelection()
+  if (selection && selection.toString().trim() && !isSelectionInTextLayer(selection)) {
+    // 如果选择的文本不在textLayer中，清空选择并通知父组件
+    selection.removeAllRanges()
+    emit('text-selected', '')
+  }
+}
+
+const handleTranslateAction = () => {
+  if (selectedTextForMenu.value) {
+    emit('translate-text', selectedTextForMenu.value)
+  }
+  hideContextMenu()
+}
+
+const handleChatAction = () => {
+  if (selectedTextForMenu.value) {
+    emit('chat-with-text', selectedTextForMenu.value)
+  }
+  hideContextMenu()
+}
+
+const handleCopyAction = async () => {
+  if (selectedTextForMenu.value) {
+    try {
+      await navigator.clipboard.writeText(selectedTextForMenu.value)
+      console.log('文本已复制到剪贴板')
+    } catch (err) {
+      console.error('复制失败:', err)
+    }
+  }
+  hideContextMenu()
 }
 
 // 监听文件变化
@@ -400,7 +605,7 @@ onMounted(() => {
   minScale.value = pdfManager.getMinScale()
   maxScale.value = pdfManager.getMaxScale()
   
-  // 加载 PDF 夜间模式设置
+  // 恢复保存的PDF夜间模式设置
   const savedPdfDarkMode = localStorage.getItem('pdfDarkMode')
   if (savedPdfDarkMode) {
     pdfDarkMode.value = savedPdfDarkMode === 'true'
@@ -408,11 +613,14 @@ onMounted(() => {
   
   // 添加文本选择事件监听
   document.addEventListener('mouseup', handleTextSelection)
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
   // 清理事件监听
   document.removeEventListener('mouseup', handleTextSelection)
+  document.removeEventListener('click', handleDocumentClick)
   
   // 清理定时器
   if (renderTimeout.value) {
@@ -422,7 +630,8 @@ onUnmounted(() => {
 
 // 暴露给父组件的方法
 defineExpose({
-  goToPage
+  goToPage,
+  generateSmartOutline: generateSmartOutlineItems
 })
 </script>
 
@@ -435,19 +644,15 @@ defineExpose({
 }
 
 .pdf-zoom-control {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 200px;
+  gap: 8px;
+  background: var(--input-background);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  min-width: 220px;
+  max-width: 100%;
 }
 
 .zoom-control-handle {
@@ -459,6 +664,32 @@ defineExpose({
 .zoom-control-handle svg {
   width: 18px;
   height: 18px;
+}
+
+.fit-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 28px;
+}
+
+.fit-page-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary-color);
+  border-color: var(--primary-color);
+}
+
+.fit-page-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .zoom-slider-container {
@@ -495,37 +726,35 @@ defineExpose({
   border: none;
 }
 
+.pdf-dark-mode-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary-color);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pdf-dark-mode-toggle:hover {
+  background: var(--hover-color);
+  color: var(--text-primary-color);
+}
+
+.pdf-dark-mode-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
 .zoom-label {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-primary-color);
   min-width: 35px;
   text-align: center;
-}
-
-.pdf-dark-mode-toggle {
-  width: 32px;
-  height: 32px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary-color);
-  transition: all 0.2s;
-  margin-left: 8px;
-}
-
-.pdf-dark-mode-toggle:hover {
-  background: var(--hover-bg);
-  border-color: var(--primary-color);
-}
-
-.pdf-dark-mode-toggle svg {
-  width: 16px;
-  height: 16px;
 }
 
 .pdf-content {
@@ -564,6 +793,21 @@ defineExpose({
   padding: 16px;
   background: var(--surface-color);
   border-top: 1px solid var(--border-color);
+  position: relative;
+  flex-wrap: wrap;
+  min-height: 60px;
+}
+
+.page-navigation .nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-navigation .pdf-zoom-control {
+  position: absolute;
+  right: 16px;
+  flex-shrink: 0;
 }
 
 .nav-button {
@@ -619,9 +863,6 @@ defineExpose({
   white-space: nowrap;
   cursor: text;
   overflow: hidden;
-  line-height: 1;
-  font-synthesis: none;
-  font-kerning: none;
 }
 
 :deep(.textLayer > span) {
@@ -629,36 +870,10 @@ defineExpose({
   position: absolute;
   white-space: nowrap;
   transform-origin: 0% 0%;
-  line-height: 1;
-  font-size: inherit;
-  font-family: inherit;
-  font-synthesis: none;
-  font-kerning: none;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeSpeed;
 }
 
 :deep(.textLayer ::selection) {
   background: rgba(0, 123, 255, 0.3);
-  padding: 0;
-  margin: 0;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-
-/* 改进选区在不同缩放下的表现 */
-:deep(.textLayer) {
-  -webkit-text-size-adjust: none;
-  -moz-text-size-adjust: none;
-  text-size-adjust: none;
-}
-
-/* 确保选区高度精确匹配文字 */
-:deep(.textLayer > span::selection) {
-  background: rgba(0, 123, 255, 0.3);
-  line-height: 1;
-  vertical-align: baseline;
 }
 
 /* PDF 页面容器 */
@@ -669,19 +884,58 @@ defineExpose({
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: all 0.3s ease;
 }
 
-/* 夜间模式下的 PDF 页面背景 */
-.pdf-dark-mode :deep(.pdf-page) {
-  background: var(--background-color) !important;
-  border-color: var(--border-color);
+:deep(.pdf-page canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* 夜间模式下的 PDF 反色效果 */
-.pdf-dark-mode :deep(.pdf-page canvas) {
-  filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(0.9);
-  transition: filter 0.3s ease;
+/* 右键上下文菜单样式 */
+.context-menu {
+  position: fixed;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 180px;
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-primary-color);
+  transition: background-color 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.context-menu-item .menu-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 8px;
+}
+
+/* PDF 夜间模式样式 */
+.pdf-dark-mode {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* 检测并保持图片在夜间模式下相对正常 */
@@ -689,9 +943,42 @@ defineExpose({
   filter: invert(1) hue-rotate(180deg);
 }
 
-:deep(.pdf-page canvas) {
-  display: block;
-  width: 100%;
-  height: 100%;
+/* 响应式设计 */
+@media (max-width: 900px) {
+  .page-navigation .pdf-zoom-control {
+    position: static;
+    margin-top: 8px;
+  }
+  
+  .page-navigation {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-navigation {
+    padding: 12px;
+  }
+  
+  .page-navigation .nav-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .page-navigation .pdf-zoom-control {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .pdf-zoom-control {
+    min-width: 160px;
+  }
+  
+  .zoom-label {
+    min-width: 35px;
+  }
 }
 </style>

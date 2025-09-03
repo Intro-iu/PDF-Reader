@@ -234,7 +234,7 @@ pub fn import_config_from_file(app_handle: AppHandle, file_path: String) -> Resu
 
 // Tauri 命令：导出配置到指定文件
 #[tauri::command]
-pub fn export_config_to_file(app_handle: AppHandle, file_path: String, config: AppConfig) -> Result<(), String> {
+pub fn export_config_to_file(_app_handle: AppHandle, file_path: String, config: AppConfig) -> Result<(), String> {
     let path = PathBuf::from(file_path);
     
     // 确保目录存在

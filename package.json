@@ -11,11 +11,11 @@
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
     "tauri:bundle": "npm run build && tauri build",
+    "build:current": "npm run build && tauri build",
     "build:windows": "npm run build && tauri build --target x86_64-pc-windows-msvc",
     "build:linux": "npm run build && tauri build --target x86_64-unknown-linux-gnu",
     "build:macos": "npm run build && tauri build --target x86_64-apple-darwin",
-    "build:macos-arm": "npm run build && tauri build --target aarch64-apple-darwin",
-    "build:all": "npm run build:windows && npm run build:linux && npm run build:macos && npm run build:macos-arm"
+    "build:macos-arm": "npm run build && tauri build --target aarch64-apple-darwin"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

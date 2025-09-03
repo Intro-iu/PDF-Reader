@@ -150,16 +150,23 @@ const openSettings = () => {
   padding: 8px 16px;
   background-color: var(--primary-color);
   color: white;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: background-color 0.2s;
   text-decoration: none;
+  outline: none;
 }
 
 .custom-file-upload:hover {
   background-color: var(--primary-hover-color);
+}
+
+.custom-file-upload:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.3);
 }
 
 #file-input {

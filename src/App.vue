@@ -100,6 +100,9 @@
       @confirm="handleFileSelectConfirm"
       @cancel="handleFileSelectCancel"
     />
+
+    <!-- 更新通知 -->
+    <UpdateNotification ref="updateNotificationRef" />
   </div>
 </template>
 
@@ -111,6 +114,7 @@ import Sidebar from './components/Sidebar.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import OutlineSidebar from './components/OutlineSidebar.vue'
+import UpdateNotification from './components/UpdateNotification.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
 import { applyCSSVariables } from './utils/init'
@@ -123,6 +127,7 @@ import type { PdfHistoryItem } from './utils/pdfHistory'
 const theme = ref<Theme>('dark')
 const selectedFile = ref<File | null>(null)
 const pdfViewerRef = ref()
+const updateNotificationRef = ref()
 const showSettings = ref(false)
 const error = ref<string | null>(null)
 const errorTimer = ref<ReturnType<typeof setTimeout> | null>(null)

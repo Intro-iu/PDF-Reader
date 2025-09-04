@@ -192,6 +192,7 @@ const openSettings = () => {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  margin-left: 8px;
 }
 
 .settings-link:hover,

@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -21,6 +21,7 @@
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
+    "@tauri-apps/plugin-http": "^2.5.2",
     "axios": "^1.11.0",
     "pdfjs-dist": "^3.11.174",
     "vue": "^3.5.18"

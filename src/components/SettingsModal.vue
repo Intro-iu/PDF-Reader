@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { reactive, onMounted, watch, ref } from 'vue';
 import ConfirmDialog from './ConfirmDialog.vue';
+import { checkForUpdates } from '../utils/updateChecker';
 
 // --- 类型定义 ---
 interface Props {
@@ -59,6 +60,8 @@ const editingModel = reactive<Omit<AiModel, 'id'>>({
 // 重置确认对话框状态
 const showResetConfirmDialog = ref(false);
 const showImportConfirmDialog = ref(false);
+const checkingUpdate = ref(false);
+const currentVersion = ref('1.0.1');
 
 const emit = defineEmits(['close', 'toggle-theme']);
 
@@ -278,6 +281,33 @@ function cancelImportConfig() {
     showImportConfirmDialog.value = false;
 }
 
+function handleCheckUpdate() {
+    checkingUpdate.value = true;
+    
+    checkForUpdates().then(updateInfo => {
+        if (updateInfo.hasUpdate) {
+            // 显示更新通知
+            showNotification(`发现新版本 v${updateInfo.latestVersion}！`, 'success');
+            if (updateInfo.downloadUrl) {
+                // 询问是否要打开下载页面
+                if (confirm(`发现新版本 v${updateInfo.latestVersion}，是否前往下载页面？`)) {
+                    window.open(updateInfo.downloadUrl, '_blank');
+                }
+            }
+        } else {
+            showNotification('当前已是最新版本！', 'info');
+        }
+    }).catch(error => {
+        console.error('检查更新失败:', error);
+        showNotification('检查更新失败，请稍后重试', 'error');
+    }).finally(() => {
+        // 延迟重置状态，给用户反馈
+        setTimeout(() => {
+            checkingUpdate.value = false;
+        }, 1000);
+    });
+}
+
 </script>
 
 <template>
@@ -426,6 +456,30 @@ function cancelImportConfig() {
                                     <span class="slider-value">{{ settings.selectionOpacity }}%</span>
                                 </div>
                                 <small>调整文本选区的透明度（10% - 80%）</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>关于</h3>
+                        <div class="settings-grid">
+                            <div class="setting-group">
+                                <label>应用版本</label>
+                                <div class="version-info">
+                                    <span class="version-text">{{ currentVersion }}</span>
+                                    <button type="button" class="btn-check-update" @click="handleCheckUpdate" :disabled="checkingUpdate">
+                                        {{ checkingUpdate ? '检查中...' : '检查更新' }}
+                                    </button>
+                                </div>
+                                <small>点击检查更新按钮查看是否有新版本可用</small>
+                            </div>
+                            <div class="setting-group">
+                                <label>开发信息</label>
+                                <div class="app-info">
+                                    <p>GitHub: <a href="https://github.com/ZeroHzzzz/PDF-Reader" target="_blank">ZeroHzzzz/PDF-Reader</a></p>
+                                    <p>技术栈: Vue 3 + Tauri + TypeScript</p>
+                                </div>
+                                <small>一个简洁的跨平台PDF阅读器</small>
                             </div>
                         </div>
                     </div>
@@ -978,6 +1032,69 @@ input[type="range"]::-webkit-slider-thumb {
 .notification-info { background-color: #007bff; }
 .notification-success { background-color: #28a745; }
 .notification-error { background-color: #dc3545; }
+
+/* --- Version and App Info Styles --- */
+.version-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.version-text {
+    font-family: 'Courier New', monospace;
+    background: var(--input-background);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-check-update {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-check-update:hover:not(:disabled) {
+    background: var(--primary-color-hover);
+    transform: translateY(-1px);
+}
+
+.btn-check-update:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.app-info {
+    margin-top: 8px;
+    line-height: 1.6;
+}
+
+.app-info p {
+    margin: 4px 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+.app-info a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.app-info a:hover {
+    color: var(--primary-color-hover);
+    text-decoration: underline;
+}
 
 </style>
 

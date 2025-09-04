@@ -398,6 +398,7 @@ const loadPdfOutline = async (pdfDocument: any): Promise<OutlineItem[]> => {
     const outline = await pdfDocument.getOutline()
     if (outline && outline.length > 0) {
       console.log('找到内嵌目录，解析中...')
+      console.log('目录项示例:', JSON.stringify(outline[0], null, 2))
       return await parseEmbeddedOutline(outline, pdfDocument)
     }
     
@@ -416,17 +417,56 @@ const parseEmbeddedOutline = async (outline: any[], pdfDocument: any): Promise<O
   const parseOutlineItem = async (item: any, level: number = 0): Promise<OutlineItem> => {
     let pageNum = 1
     
+    // 调试信息：输出目录项结构
+    console.log('解析目录项:', {
+      title: item.title,
+      dest: item.dest,
+      destType: typeof item.dest,
+      url: item.url
+    })
+    
     // 尝试获取目标页面
     if (item.dest) {
       try {
-        const dest = await pdfDocument.getDestination(item.dest)
+        let dest = null
+        
+        // 如果 dest 是字符串，尝试获取命名目标
+        if (typeof item.dest === 'string') {
+          dest = await pdfDocument.getDestination(item.dest)
+        } 
+        // 如果 dest 是数组，直接使用
+        else if (Array.isArray(item.dest)) {
+          dest = item.dest
+        } 
+        // 其他情况，尝试直接获取
+        else {
+          dest = await pdfDocument.getDestination(item.dest)
+        }
+        
+        console.log('获取到的dest:', dest)
+        
         if (dest && dest[0]) {
           const pageRef = dest[0]
-          const pageIndex = await pdfDocument.getPageIndex(pageRef)
-          pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
+          // 如果 pageRef 是数字，直接使用（有些PDF直接存储页码）
+          if (typeof pageRef === 'number') {
+            pageNum = pageRef + 1
+          } else {
+            // 否则通过引用获取页面索引
+            const pageIndex = await pdfDocument.getPageIndex(pageRef)
+            pageNum = pageIndex + 1 // PDF 页面索引从 0 开始，显示页码从 1 开始
+          }
+          console.log('解析到页码:', pageNum)
         }
       } catch (err) {
         console.warn('无法获取目录项页面:', err)
+        console.warn('目录项详情:', item)
+        // 尝试从 URL 或其他属性中提取页码信息
+        if (item.url && typeof item.url === 'string') {
+          const pageMatch = item.url.match(/page=(\d+)/i)
+          if (pageMatch) {
+            pageNum = parseInt(pageMatch[1])
+          }
+        }
       }
     }
     

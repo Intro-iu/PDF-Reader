@@ -213,7 +213,17 @@ const handlePageChanged = (page: number) => {
 
 const handleTextSelected = (text: string) => {
   const trimmedText = text.trim();
+  
+  // 如果选中的文本和当前已选中的文本相同，则不需要处理
+  if (translationState.selectedText === trimmedText) {
+    console.log('Same text selected, skipping...')
+    return
+  }
+  
+  // 选中了新的文本，清空之前的翻译结果和错误状态
   translationState.selectedText = trimmedText;
+  translationState.translatedText = '';
+  translationState.error = null;
   
   // 只有在以下条件都满足时才进行自动翻译：
   // 1. 启用了自动翻译
@@ -232,6 +242,14 @@ const handleTranslate = async (text: string) => {
   // 如果正在翻译相同的文本，则不重复翻译
   if (translationState.isTranslating && translationState.selectedText === text) {
     console.log('Already translating this text, skipping...')
+    return
+  }
+
+  // 如果当前选中的文本和已经翻译过的文本相同，且有翻译结果，则不重复翻译
+  if (translationState.selectedText === text && 
+      translationState.translatedText && 
+      !translationState.error) {
+    console.log('Text already translated, skipping...')
     return
   }
 

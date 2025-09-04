@@ -64,7 +64,7 @@ const showImportConfirmDialog = ref(false);
 const showDeleteModelConfirmDialog = ref(false);
 const modelToDelete = ref<string | null>(null);
 const checkingUpdate = ref(false);
-const currentVersion = ref('1.0.1');
+const currentVersion = ref('1.0.4');
 
 // 模型测试相关状态
 const testingModels = ref<Set<string>>(new Set());
@@ -429,10 +429,26 @@ function handleCheckUpdate() {
         if (updateInfo.hasUpdate) {
             // 显示更新通知
             showNotification(`发现新版本 v${updateInfo.latestVersion}！`, 'success');
-            if (updateInfo.downloadUrl) {
-                // 询问是否要打开下载页面
-                if (confirm(`发现新版本 v${updateInfo.latestVersion}，是否前往下载页面？`)) {
+            
+            // 创建更新选择对话框
+            const choice = confirm(
+                `发现新版本 v${updateInfo.latestVersion}！\n\n` +
+                `点击"确定"前往发布页查看详情\n` +
+                `点击"取消"直接下载更新包`
+            );
+            
+            if (choice) {
+                // 前往发布页
+                const releaseUrl = updateInfo.releaseUrl || 'https://github.com/ZeroHzzzz/PDF-Reader/releases';
+                window.open(releaseUrl, '_blank');
+            } else {
+                // 直接下载
+                if (updateInfo.downloadUrl) {
                     window.open(updateInfo.downloadUrl, '_blank');
+                } else {
+                    // 如果没有直接下载链接，还是跳转到发布页
+                    const releaseUrl = updateInfo.releaseUrl || 'https://github.com/ZeroHzzzz/PDF-Reader/releases';
+                    window.open(releaseUrl, '_blank');
                 }
             }
         } else {

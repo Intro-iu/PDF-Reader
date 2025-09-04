@@ -1,7 +1,12 @@
 import axios from 'axios'
-import type { AIModel, ChatMessage } from '../types'
+import type { AIModel } from '../types'
 
 interface APIMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
+
+interface SimpleChatMessage {
   role: 'user' | 'assistant' | 'system'
   content: string
 }
@@ -15,7 +20,7 @@ export class AIService {
   async sendChatMessage(
     model: AIModel, 
     message: string, 
-    chatHistory: ChatMessage[], 
+    chatHistory: SimpleChatMessage[], 
     chatPrompt?: string
   ): Promise<{ 
     message: string 

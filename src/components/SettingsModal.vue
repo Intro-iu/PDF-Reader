@@ -243,7 +243,6 @@ function updateAiModelField(modelId: string, field: keyof AiModel, value: any) {
 // 测试AI模型连接
 async function testAiModel(modelId?: string) {
     let modelConfig;
-    let testKey;
     
     if (modelId) {
         // 测试现有模型
@@ -252,12 +251,10 @@ async function testAiModel(modelId?: string) {
             showNotification('模型不存在', 'error');
             return;
         }
-        testKey = modelId;
         testingModels.value.add(modelId);
     } else {
         // 测试新模型（添加时）
         modelConfig = editingModel;
-        testKey = 'new';
         testingNewModel.value = true;
     }
     
@@ -303,7 +300,7 @@ async function testAiModel(modelId?: string) {
             const message = `${modelConfig.name || '模型'} 响应格式异常`;
             showNotification(message, 'error');
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Test error:', error);
         
         // 更详细的错误信息

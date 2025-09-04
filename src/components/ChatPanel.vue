@@ -156,6 +156,7 @@ watch(() => [props.messages, props.isThinking], () => {
   display: flex;
   flex-direction: column;
   padding: 16px;
+  background-color: var(--md-sys-color-surface);
 }
 
 .panel-header {
@@ -163,59 +164,64 @@ watch(() => [props.messages, props.isThinking], () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding: 0 8px;
 }
 
 .panel-header h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary-color);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface);
 }
 
 .new-chat-button {
-  padding: 6px 12px;
+  padding: 10px 24px;
   background: transparent;
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 6px;
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: 20px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .new-chat-button:hover {
-  background: var(--primary-color);
-  color: white;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-color: var(--md-sys-color-primary-container);
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px;
   margin-bottom: 16px;
 }
 
 .welcome-view {
   text-align: center;
   padding: 40px 20px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .welcome-icon {
   font-size: 48px;
   margin-bottom: 16px;
+  color: var(--md-sys-color-secondary);
 }
 
 .welcome-view h4 {
   margin: 0 0 8px 0;
-  color: var(--text-primary-color);
-  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+  font-size: 22px;
+  font-weight: 400;
 }
 
 .welcome-view p {
   margin: 0;
   line-height: 1.5;
+  font-size: 14px;
 }
 
 .message {
@@ -234,21 +240,20 @@ watch(() => [props.messages, props.isThinking], () => {
 .message-content {
   max-width: 85%;
   padding: 12px 16px;
-  border-radius: 16px;
+  border-radius: 18px;
   position: relative;
 }
 
 .user-message .message-content {
-  background: var(--user-message-bg);
-  color: var(--text-primary-color);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
   border-bottom-right-radius: 4px;
 }
 
 .ai-message .message-content {
-  background: var(--ai-message-bg);
-  color: var(--text-primary-color);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
   border-bottom-left-radius: 4px;
-  border: 1px solid var(--border-color);
 }
 
 .message-text {
@@ -259,17 +264,14 @@ watch(() => [props.messages, props.isThinking], () => {
 
 .message-time {
   font-size: 11px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   margin-top: 4px;
   text-align: right;
+  opacity: 0.8;
 }
 
 .ai-message .message-time {
   text-align: left;
-}
-
-.thinking {
-  opacity: 0.8;
 }
 
 .thinking-indicator {
@@ -278,15 +280,10 @@ watch(() => [props.messages, props.isThinking], () => {
   gap: 8px;
 }
 
-.thinking-dots {
-  display: flex;
-  gap: 4px;
-}
-
 .thinking-dots span {
-  width: 6px;
-  height: 6px;
-  background: var(--primary-color);
+  width: 8px;
+  height: 8px;
+  background: var(--md-sys-color-primary);
   border-radius: 50%;
   animation: thinking-pulse 1.4s ease-in-out infinite both;
 }
@@ -295,21 +292,16 @@ watch(() => [props.messages, props.isThinking], () => {
 .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
 
 @keyframes thinking-pulse {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
-  }
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 .thinking-text {
   font-size: 14px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .chat-input-area {
-  border-top: 1px solid var(--border-color);
   padding-top: 16px;
 }
 
@@ -317,49 +309,36 @@ watch(() => [props.messages, props.isThinking], () => {
   display: flex;
   gap: 8px;
   align-items: flex-end;
+  background-color: var(--md-sys-color-surface-container-high);
+  border-radius: 24px;
+  padding: 4px;
 }
 
 .chat-input {
   flex: 1;
-  min-height: 40px;
+  min-height: 48px;
   max-height: 120px;
-  padding: 12px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  background: var(--input-background);
-  color: var(--text-primary-color);
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
   resize: none;
   font-family: inherit;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 16px;
+  line-height: 1.5;
   outline: none;
-  transition: border-color 0.2s;
-  overflow-y: auto;
-}
-
-/* 隐藏滚动条但保持滚动功能 */
-.chat-input::-webkit-scrollbar {
-  display: none;
-}
-
-.chat-input {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-.chat-input:focus {
-  border-color: var(--primary-color);
 }
 
 .chat-input::placeholder {
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.8;
 }
 
 .send-button {
-  width: 40px;
-  height: 40px;
-  background: var(--primary-color);
-  color: white;
+  width: 48px;
+  height: 48px;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -371,18 +350,17 @@ watch(() => [props.messages, props.isThinking], () => {
 }
 
 .send-button:hover:not(:disabled) {
-  background: var(--primary-hover-color);
-  transform: scale(1.05);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .send-button:disabled {
-  background: var(--border-color);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: not-allowed;
-  transform: none;
 }
 
 .send-button svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
 }
 </style>

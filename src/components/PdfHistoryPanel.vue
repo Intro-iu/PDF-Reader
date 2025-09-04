@@ -162,13 +162,13 @@ const formatTime = (timestamp: number) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--sidebar-bg);
-  color: var(--text-primary-color);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
 }
 
 .panel-header {
   padding: 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -176,8 +176,8 @@ const formatTime = (timestamp: number) => {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 400;
 }
 
 .history-controls {
@@ -189,10 +189,10 @@ const formatTime = (timestamp: number) => {
 .clear-button {
   background: none;
   border: none;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,8 +200,8 @@ const formatTime = (timestamp: number) => {
 }
 
 .clear-button:hover:not(:disabled) {
-  background: var(--hover-bg);
-  color: var(--text-primary-color);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
 }
 
 .clear-button:disabled {
@@ -210,8 +210,8 @@ const formatTime = (timestamp: number) => {
 }
 
 .clear-button svg {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
 }
 
 .history-content {
@@ -229,7 +229,7 @@ const formatTime = (timestamp: number) => {
   justify-content: center;
   padding: 32px 16px;
   text-align: center;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .empty-history svg {
@@ -251,14 +251,13 @@ const formatTime = (timestamp: number) => {
 
 .history-tip {
   padding: 8px 16px;
-  background: var(--card-bg);
-  border-radius: 6px;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
   margin: 8px;
-  border-left: 3px solid var(--primary-color);
+  border-radius: 8px;
 }
 
 .history-tip small {
-  color: var(--text-secondary-color);
   font-size: 12px;
 }
 
@@ -269,9 +268,9 @@ const formatTime = (timestamp: number) => {
 }
 
 .history-item {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
   margin-bottom: 8px;
   padding: 12px;
   cursor: pointer;
@@ -279,30 +278,27 @@ const formatTime = (timestamp: number) => {
 }
 
 .history-item:hover {
-  background: var(--hover-bg);
-  border-color: var(--primary-color);
-}
-
-.pdf-item {
-  border-left: 3px solid #e74c3c;
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-color: var(--md-sys-color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .item-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 12px;
 }
 
 .item-type {
   display: flex;
   align-items: center;
-  color: #e74c3c;
+  color: var(--md-sys-color-primary);
 }
 
 .item-type svg {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
 }
 
 .item-info {
@@ -311,11 +307,12 @@ const formatTime = (timestamp: number) => {
 }
 
 .item-title {
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--md-sys-color-on-surface);
 }
 
 .item-meta {
@@ -323,29 +320,20 @@ const formatTime = (timestamp: number) => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--text-secondary-color);
-}
-
-.item-time {
-  color: var(--text-secondary-color);
-}
-
-.item-pages {
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .item-actions {
   display: flex;
-  gap: 4px;
 }
 
 .delete-button {
   background: none;
   border: none;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -353,40 +341,23 @@ const formatTime = (timestamp: number) => {
 }
 
 .delete-button:hover {
-  background: var(--error-color);
-  color: white;
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
 }
 
 .delete-button svg {
-  width: 12px;
-  height: 12px;
+  width: 20px;
+  height: 20px;
 }
 
 .item-path {
   font-size: 12px;
-  color: var(--text-secondary-color);
-  margin-top: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0.8;
-}
-
-/* 滚动条样式 */
-.history-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.history-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.history-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.history-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary-color);
+  opacity: 0.7;
+  padding-left: 36px;
 }
 </style>

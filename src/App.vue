@@ -1,9 +1,9 @@
 <template>
-  <div id="app" :class="{ 'light-mode': theme === 'light' }">
+  <div id="app">
     <div class="app-container">
       <!-- 工具栏 -->
       <Toolbar 
-        :theme="theme"
+        :is-dark="theme.isDark"
         :pdf-info="pdfViewerState"
         @file-selected="handleFileSelected"
         @toggle-theme="toggleTheme"
@@ -68,9 +68,10 @@
     <!-- 设置模态框 -->
     <SettingsModal 
       v-if="showSettings"
-      :theme="theme"
+      :is-dark="theme.isDark"
+      :source-color="theme.sourceColor"
       @close="closeSettings"
-      @toggle-theme="toggleTheme"
+      @update-theme="updateTheme"
     />
 
     <!-- 错误提示 -->
@@ -117,14 +118,17 @@ import OutlineSidebar from './components/OutlineSidebar.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
-import { applyCSSVariables } from './utils/init'
+import { applyMaterialTheme, initializeTheme } from './utils/material-theme'
 import { normalizePath, getPlatformInfo } from './utils/platform'
 import { pdfHistoryManager } from './utils/pdfHistory'
-import type { Theme, PdfViewerState, TranslationState, ChatMessage } from './types'
+import type { PdfViewerState, TranslationState, ChatMessage, OutlineItem } from './types'
 import type { PdfHistoryItem } from './utils/pdfHistory'
 
 // 响应式状态
-const theme = ref<Theme>('dark')
+const theme = reactive({
+  isDark: true,
+  sourceColor: '#6750A4'
+})
 const selectedFile = ref<File | null>(null)
 const pdfViewerRef = ref()
 const updateNotificationRef = ref()
@@ -587,17 +591,24 @@ const loadPdfHistory = async () => {
 }
 
 const toggleTheme = () => {
-  theme.value = theme.value === 'light' ? 'dark' : 'light'
-}
+  theme.isDark = !theme.isDark;
+  applyMaterialTheme(theme.sourceColor, theme.isDark);
+};
+
+const updateTheme = (newColor: string, newIsDark: boolean) => {
+  theme.sourceColor = newColor;
+  theme.isDark = newIsDark;
+  applyMaterialTheme(theme.sourceColor, theme.isDark);
+};
 
 const openSettings = () => {
-  showSettings.value = true
-}
+  console.log('openSettings called');
+  showSettings.value = true;
+};
 
 const closeSettings = () => {
-  showSettings.value = false
-  applyCSSVariables() // 重新应用 CSS 变量
-}
+  showSettings.value = false;
+};
 
 // 确认对话框处理函数
 const handleRetryConfirm = async () => {
@@ -707,117 +718,73 @@ const setError = (errorMessage: string) => {
 
 // 生命周期
 onMounted(async () => {
-  console.log('开始应用初始化...')
-  
-  // 应用主题
-  const savedTheme = localStorage.getItem('theme') as Theme
+  console.log('开始应用初始化...');
+
+  // 从localStorage加载主题
+  const savedTheme = localStorage.getItem("app-theme");
   if (savedTheme) {
-    theme.value = savedTheme
+    try {
+      const { isDark, sourceColor } = JSON.parse(savedTheme);
+      theme.isDark = isDark ?? true;
+      theme.sourceColor = sourceColor ?? '#6750A4';
+    } catch (e) {
+      console.error("解析保存的主题失败", e);
+    }
   }
-  console.log('主题加载完成')
+  // 应用加载的主题
+  applyMaterialTheme(theme.sourceColor, theme.isDark);
 
   try {
     // 等待配置管理器初始化完成
-    await configManager.initialize()
-    console.log('配置管理器初始化完成')
+    await configManager.initialize();
+    console.log('配置管理器初始化完成');
     
     // 等待PDF历史记录管理器初始化完成
-    await pdfHistoryManager.initialize()
-    console.log('PDF历史记录管理器初始化完成')
+    await pdfHistoryManager.initialize();
+    console.log('PDF历史记录管理器初始化完成');
     
     // 从已初始化的 configManager 加载配置
-    const config = configManager.getConfig()
-    translationState.autoTranslate = config.enableSelectionTranslation
-    console.log('配置加载完成')
+    const config = configManager.getConfig();
+    translationState.autoTranslate = config.enableSelectionTranslation;
+    console.log('配置加载完成');
   } catch (error) {
-    console.error('配置初始化失败，使用默认配置:', error)
+    console.error('配置初始化失败，使用默认配置:', error);
     // 即使配置初始化失败，也要继续
   }
   
   // 加载PDF历史记录
-  await loadPdfHistory()
-  console.log('PDF历史记录加载完成')
+  await loadPdfHistory();
+  console.log('PDF历史记录加载完成');
   
   // 等待一小段时间确保所有组件都已渲染
-  await new Promise(resolve => setTimeout(resolve, 100))
+  await new Promise(resolve => setTimeout(resolve, 100));
   
   // 标记应用已完全初始化
-  isAppReady.value = true
-  console.log('应用初始化完成，isAppReady =', isAppReady.value)
-})
+  isAppReady.value = true;
+  console.log('应用初始化完成，isAppReady =', isAppReady.value);
+});
 
 // 清理定时器
 onUnmounted(() => {
   if (errorTimer.value) {
-    clearTimeout(errorTimer.value)
-    errorTimer.value = null
+    clearTimeout(errorTimer.value);
+    errorTimer.value = null;
   }
-})
+});
 
-// 监听主题变化
+// 监听主题变化并保存
 watch(theme, (newTheme) => {
-  localStorage.setItem('theme', newTheme)
-}, { immediate: true })
+  applyMaterialTheme(newTheme.sourceColor, newTheme.isDark);
+}, { deep: true });
 </script>
 
 <style>
-/* CSS 变量定义 */
-:root {
-  --primary-color: #007acc;
-  --primary-hover-color: #005a9e;
-  --background-color: #1e1e1e;
-  --surface-color: #252526;
-  --border-color: #3c3c3c;
-  --text-primary-color: #cccccc;
-  --text-secondary-color: #858585;
-  --input-background: #3c3c3c;
-  --input-border: #464647;
-  --input-focus-border: #007acc;
-  --welcome-color: #6c7086;
-  --user-message-bg: #2d2d30;
-  --ai-message-bg: #1e1e1e;
-  --hover-bg: #2a2d2e;
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "SF Mono", Monaco, Inconsolata, "Roboto Mono", Consolas, "Courier New", monospace;
-}
-
-.light-mode {
-  --primary-color: #007acc;
-  --primary-hover-color: #005a9e;
-  --background-color: #f3f4f6;
-  --surface-color: #ffffff;
-  --border-color: #e5e7eb;
-  --text-primary-color: #1f2937;
-  --text-secondary-color: #6b7280;
-  --input-background: #ffffff;
-  --input-border: #d1d5db;
-  --input-focus-border: #007acc;
-  --welcome-color: #9ca3af;
-  --user-message-bg: #f9fafb;
-  --ai-message-bg: #ffffff;
-  --hover-bg: #f3f4f6;
-}
-
-/* 全局样式 */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: var(--font-family);
-  background-color: var(--background-color);
-  color: var(--text-primary-color);
-  height: 100%;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* 文本选择样式 */
-::selection {
-  background: rgba(0, 123, 255, 0.3);
-}
+/* 全局样式将由 style.css 和 material-theme.ts 控制 */
 
 #app {
   height: 100vh;
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
 }
 
 .app-container {
@@ -837,6 +804,7 @@ body, html {
 .pdf-viewer-section {
   flex: 1;
   overflow: hidden;
+  background-color: var(--md-sys-color-surface-container-lowest);
 }
 
 /* 错误提示 */
@@ -844,14 +812,14 @@ body, html {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #f56565;
-  color: white;
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
   padding: 12px 40px 12px 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   z-index: 1001;
   max-width: 300px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--md-sys-elevation-level3);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -864,12 +832,12 @@ body, html {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: white;
+  color: var(--md-sys-color-on-error-container);
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -878,7 +846,8 @@ body, html {
 }
 
 .toast-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
 }
 
 /* 过渡动画 */
@@ -887,32 +856,9 @@ body, html {
   transition: all 0.3s ease;
 }
 
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
+.toast-enter-from,
 .toast-leave-to {
   opacity: 0;
   transform: translateX(100%);
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background-color);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary-color);
 }
 </style>

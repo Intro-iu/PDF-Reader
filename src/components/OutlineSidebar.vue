@@ -173,59 +173,61 @@ const stopResize = () => {
 <style scoped>
 .outline-sidebar {
   position: relative;
-  background: var(--surface-color);
-  border-right: 1px solid var(--border-color);
+  background-color: var(--md-sys-color-surface-container);
+  border-right: 1px solid var(--md-sys-color-outline-variant);
   height: 100%;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, min-width 0.3s ease;
   width: v-bind('sidebarWidth + "px"');
   min-width: 200px;
   max-width: 400px;
 }
 
 .outline-sidebar.collapsed {
-  width: 40px;
-  min-width: 40px;
+  width: 56px;
+  min-width: 56px;
 }
 
 .sidebar-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 12px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 48px;
+  min-height: 64px;
 }
 
 .sidebar-header h3 {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary-color);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface);
+  padding-left: 12px;
 }
 
 .collapse-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-secondary-color);
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--md-sys-color-on-surface-variant);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .collapse-btn:hover {
-  background: var(--border-color);
-  color: var(--text-primary-color);
+  background-color: var(--md-sys-color-surface-container-highest);
 }
 
 .collapse-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
 }
 
 .outline-content {
@@ -242,13 +244,13 @@ const stopResize = () => {
   justify-content: center;
   padding: 32px 16px;
   text-align: center;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   flex: 1;
 }
 
 .empty-icon {
   margin-bottom: 16px;
-  opacity: 0.5;
+  color: var(--md-sys-color-secondary);
 }
 
 .empty-icon svg {
@@ -258,13 +260,12 @@ const stopResize = () => {
 
 .empty-outline p {
   margin: 0 0 8px 0;
-  font-size: 14px;
-  color: var(--text-primary-color);
+  font-size: 16px;
+  color: var(--md-sys-color-on-surface);
 }
 
 .empty-outline small {
   font-size: 12px;
-  color: var(--text-secondary-color);
   margin-bottom: 16px;
 }
 
@@ -272,170 +273,64 @@ const stopResize = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
+  padding: 10px 24px;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   border: none;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 32px;
 }
 
 .smart-generate-btn:hover:not(:disabled) {
-  background: var(--primary-hover-color);
-  transform: translateY(-1px);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .smart-generate-btn:disabled {
-  opacity: 0.6;
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: not-allowed;
-  transform: none;
 }
 
 .smart-generate-btn .btn-icon {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .outline-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px;
 }
 
 .outline-item {
   cursor: pointer;
   padding: 8px 12px;
-  margin: 2px 6px;
-  border-radius: 6px;
+  margin: 2px 0;
+  border-radius: 8px;
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
-  color: var(--text-primary-color);
+  color: var(--md-sys-color-on-surface-variant);
   position: relative;
-  line-height: 1.5;
   display: flex;
   align-items: center;
-  min-height: 36px;
-}
-
-/* 不同层级的样式 */
-.outline-item.level-0 {
-  font-weight: 600;
-  font-size: 14px;
-  background: rgba(var(--primary-color-rgb), 0.08);
-  padding: 10px 12px;
-  margin: 3px 6px;
-  border-left: 4px solid var(--primary-color);
   min-height: 40px;
 }
 
-.outline-item.level-1 {
-  font-weight: 500;
-  font-size: 13px;
-  padding: 8px 12px;
-  margin: 2px 6px;
-  background: rgba(var(--primary-color-rgb), 0.03);
-  border-left: 3px solid rgba(var(--primary-color-rgb), 0.4);
-  min-height: 36px;
-}
-
-.outline-item.level-2 {
-  font-weight: 400;
-  font-size: 12px;
-  opacity: 0.95;
-  padding: 7px 12px;
-  margin: 1px 6px;
-  border-left: 2px solid rgba(var(--primary-color-rgb), 0.25);
-  min-height: 32px;
-}
-
-.outline-item.level-3 {
-  font-weight: 400;
-  font-size: 12px;
-  opacity: 0.9;
-  padding: 6px 12px;
-  margin: 1px 6px;
-  border-left: 2px solid rgba(var(--primary-color-rgb), 0.15);
-  min-height: 28px;
-}
-
 .outline-item:hover {
-  background: rgba(var(--primary-color-rgb), 0.12);
-  border-left-color: var(--primary-color);
-  transform: translateX(2px);
+  background-color: var(--md-sys-color-surface-container-high);
 }
 
 .outline-item.active {
-  background: var(--primary-color);
-  color: white;
-  border-left-color: var(--primary-hover-color);
-  transform: translateX(3px);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: 500;
 }
 
 .outline-item.active .item-page {
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
-  opacity: 1;
-}
-
-/* 智能生成目录的特殊样式 */
-.outline-item.smart-generated {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-
-.outline-item.smart-generated:before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 3px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  opacity: 0.5;
-}
-
-/* 智能生成目录的统一字体调整 */
-.outline-item.smart-generated.level-0 {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.outline-item.smart-generated.level-1 {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.outline-item.smart-generated.level-2 {
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.3;
-  opacity: 0.95;
-}
-
-.outline-item.smart-generated.level-3 {
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.3;
-  opacity: 0.9;
-}
-
-.outline-item.smart-generated:before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  opacity: 0.6;
+  background-color: var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-secondary);
 }
 
 .item-content {
@@ -443,20 +338,12 @@ const stopResize = () => {
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 24px;
 }
 
 .item-title {
   flex: 1;
-  font-size: inherit;
-  line-height: inherit;
-  word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-  display: block;
-  font-weight: inherit;
-  color: inherit;
-  text-align: left;
+  font-size: 14px;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -465,48 +352,28 @@ const stopResize = () => {
 }
 
 .item-page {
-  font-size: 11px;
-  opacity: 0.75;
-  font-weight: 600;
-  min-width: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 24px;
   text-align: center;
-  background: rgba(var(--text-secondary-color-rgb, 128, 128, 128), 0.15);
-  padding: 3px 6px;
-  border-radius: 4px;
+  background-color: var(--md-sys-color-surface-container-highest);
+  padding: 4px 8px;
+  border-radius: 8px;
   flex-shrink: 0;
-  margin-left: auto;
-  line-height: 1.2;
 }
 
 .resize-handle {
   position: absolute;
   top: 0;
   right: 0;
-  width: 4px;
+  width: 5px;
   height: 100%;
   cursor: col-resize;
   background: transparent;
-  transition: background 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .resize-handle:hover {
-  background: var(--primary-color);
-}
-
-.outline-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.outline-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.outline-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.outline-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary-color);
+  background-color: var(--md-sys-color-primary);
 }
 </style>

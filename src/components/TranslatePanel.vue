@@ -104,26 +104,31 @@ const copyTranslation = async () => {
   display: flex;
   flex-direction: column;
   padding: 16px;
+  background-color: var(--md-sys-color-surface);
 }
 
 .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  padding: 0 8px;
 }
 
 .panel-header h3 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary-color);
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface);
 }
 
 .auto-translate-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .auto-translate-toggle input {
@@ -132,31 +137,37 @@ const copyTranslation = async () => {
 
 .toggle-slider {
   position: relative;
-  width: 44px;
-  height: 24px;
-  background: var(--border-color);
-  border-radius: 12px;
-  transition: background-color 0.2s;
+  width: 52px;
+  height: 32px;
+  background-color: var(--md-sys-color-surface-container-highest);
+  border: 2px solid var(--md-sys-color-outline);
+  border-radius: 16px;
+  transition: all 0.2s ease-in-out;
 }
 
 .toggle-slider::before {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: white;
+  top: 50%;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-outline);
   border-radius: 50%;
-  transition: transform 0.2s;
+  transition: all 0.2s ease-in-out;
+  transform: translateY(-50%);
 }
 
 .auto-translate-toggle input:checked + .toggle-slider {
-  background: var(--primary-color);
+  background-color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
 }
 
 .auto-translate-toggle input:checked + .toggle-slider::before {
-  transform: translateX(20px);
+  transform: translate(20px, -50%);
+  width: 24px;
+  height: 24px;
+  background-color: var(--md-sys-color-on-primary);
 }
 
 .translate-content {
@@ -171,36 +182,42 @@ const copyTranslation = async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  flex: 1;
 }
 
 .text-section h4 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px 8px;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary-color);
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .text-container {
   flex: 1;
-  min-height: 120px;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--input-background);
+  padding: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
   overflow-y: auto;
-  margin-bottom: 12px;
+  min-height: 120px;
+}
+
+.selected-text {
+  background-color: var(--md-sys-color-surface-container);
+}
+
+.translation-result {
+  background-color: var(--md-sys-color-surface-container-high);
 }
 
 .text-content {
   line-height: 1.6;
-  color: var(--text-primary-color);
+  color: var(--md-sys-color-on-surface);
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 
 .empty-text {
-  color: var(--text-secondary-color);
-  font-style: italic;
+  color: var(--md-sys-color-on-surface-variant);
   text-align: center;
   padding: 20px 0;
 }
@@ -210,52 +227,45 @@ const copyTranslation = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   padding: 20px 0;
 }
 
 .loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-color);
-  border-top: 2px solid var(--primary-color);
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--md-sys-color-surface-variant);
+  border-top-color: var(--md-sys-color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 .translate-button,
 .copy-button {
-  padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
+  padding: 10px 24px;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   border: none;
-  border-radius: 6px;
+  border-radius: 20px;
   cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   align-self: flex-start;
+  margin-top: 12px;
 }
 
 .translate-button:hover:not(:disabled),
 .copy-button:hover {
-  background: var(--primary-hover-color);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .translate-button:disabled {
-  background: var(--border-color);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: not-allowed;
-}
-
-.selected-text {
-  background: var(--user-message-bg);
-}
-
-.translation-result {
-  background: var(--ai-message-bg);
 }
 </style>

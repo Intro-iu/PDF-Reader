@@ -18,13 +18,16 @@
     "build:macos-arm": "npm run build && tauri build --target aarch64-apple-darwin"
   },
   "dependencies": {
+    "@material/material-color-utilities": "^0.3.0",
+    "@material/web": "^2.4.0",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
     "@tauri-apps/plugin-http": "^2.5.2",
     "axios": "^1.11.0",
     "pdfjs-dist": "^3.11.174",
-    "vue": "^3.5.18"
+    "vue": "^3.5.18",
+    "vue3-colorpicker": "^2.3.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.4",

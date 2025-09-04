@@ -179,7 +179,7 @@ const loadPdf = async (file: File) => {
     pdfDoc.value = pdfDocument.doc
     totalPages.value = pdfDocument.numPages
     currentPage.value = 1
-    
+
     emit('pdf-loaded', { totalPages: pdfDocument.numPages })
     
     // 加载 PDF 目录
@@ -681,127 +681,13 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   position: relative;
-}
-
-.pdf-zoom-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--input-background);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 8px 12px;
-  min-width: 220px;
-  max-width: 100%;
-}
-
-.zoom-control-handle {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary-color);
-}
-
-.zoom-control-handle svg {
-  width: 18px;
-  height: 18px;
-}
-
-.fit-page-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary-color);
-  cursor: pointer;
-  padding: 4px;
-  transition: all 0.2s ease;
-  min-width: 28px;
-  height: 28px;
-}
-
-.fit-page-btn:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary-color);
-  border-color: var(--primary-color);
-}
-
-.fit-page-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.zoom-slider-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.zoom-slider {
-  flex: 1;
-  height: 4px;
-  background: var(--border-color);
-  border-radius: 2px;
-  outline: none;
-  -webkit-appearance: none;
-}
-
-.zoom-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.zoom-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-}
-
-.pdf-dark-mode-toggle {
-  background: none;
-  border: none;
-  color: var(--text-secondary-color);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.pdf-dark-mode-toggle:hover {
-  background: var(--hover-color);
-  color: var(--text-primary-color);
-}
-
-.pdf-dark-mode-toggle svg {
-  width: 16px;
-  height: 16px;
-}
-
-.zoom-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary-color);
-  min-width: 35px;
-  text-align: center;
+  background-color: var(--md-sys-color-surface-container-lowest);
 }
 
 .pdf-content {
   flex: 1;
   overflow: auto;
   padding: 20px;
-  background: var(--background-color);
 }
 
 .pdf-pages {
@@ -809,7 +695,6 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 20px 0;
 }
 
 .error-message,
@@ -817,12 +702,12 @@ defineExpose({
 .welcome-message {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: 16px;
 }
 
 .error-message {
-  color: var(--error-color);
+  color: var(--md-sys-color-error);
 }
 
 .page-navigation {
@@ -830,100 +715,166 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 16px;
-  background: var(--surface-color);
-  border-top: 1px solid var(--border-color);
+  padding: 12px 16px;
+  background-color: var(--md-sys-color-surface-container);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
   position: relative;
   flex-wrap: wrap;
-  min-height: 60px;
+  min-height: 64px;
 }
 
-.page-navigation .nav-controls {
+.nav-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
-}
-
-.page-navigation .pdf-zoom-control {
-  position: absolute;
-  right: 16px;
-  flex-shrink: 0;
+  gap: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  padding: 4px;
+  border-radius: 20px;
 }
 
 .nav-button {
   padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
   border: none;
-  border-radius: 6px;
+  border-radius: 16px;
   cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .nav-button:hover:not(:disabled) {
-  background: var(--primary-hover-color);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
 }
 
 .nav-button:disabled {
-  background: var(--border-color);
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .page-input-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 0 8px;
 }
 
 .page-input {
-  width: 60px;
+  width: 50px;
   padding: 6px 8px;
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: 4px;
-  background: var(--input-background);
-  color: var(--text-primary-color);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
   text-align: center;
+  font-size: 14px;
+}
+
+.page-input:focus {
+  outline: none;
+  background-color: var(--md-sys-color-surface-container-highest);
 }
 
 .page-total {
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   font-weight: 500;
+  font-size: 14px;
 }
 
-/* 文本层样式 */
-:deep(.textLayer) {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3;
-  color: transparent;
-  white-space: nowrap;
-  cursor: text;
-  overflow: hidden;
+.pdf-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  border-radius: 20px;
+  padding: 4px 8px;
 }
 
-:deep(.textLayer > span) {
-  color: transparent;
-  position: absolute;
-  white-space: nowrap;
-  transform-origin: 0% 0%;
+.zoom-control-handle svg {
+  width: 24px;
+  height: 24px;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
-:deep(.textLayer ::selection) {
-  background: rgba(0, 123, 255, 0.3);
+.fit-page-btn, .pdf-dark-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: 8px;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
 }
 
-/* PDF 页面容器 */
+.fit-page-btn:hover, .pdf-dark-mode-toggle:hover {
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+}
+
+.fit-page-btn svg, .pdf-dark-mode-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.zoom-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.zoom-slider {
+  flex: 1;
+  height: 4px;
+  background: var(--md-sys-color-outline-variant);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--md-sys-color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.zoom-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  min-width: 40px;
+  text-align: center;
+}
+
 :deep(.pdf-page) {
   position: relative;
   margin-bottom: 20px;
-  border: 1px solid var(--border-color);
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: #fff; /* Canvas background is always white */
+  box-shadow: var(--md-sys-elevation-level1);
   overflow: hidden;
+  border-radius: 4px;
 }
 
 :deep(.pdf-page canvas) {
@@ -932,93 +883,49 @@ defineExpose({
   height: 100%;
 }
 
-/* 右键上下文菜单样式 */
 .context-menu {
   position: fixed;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--md-sys-color-surface-container);
   border-radius: 8px;
-  padding: 6px 0;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding: 8px 0;
+  box-shadow: var(--md-sys-elevation-level2);
   z-index: 1000;
   min-width: 180px;
   font-size: 14px;
-  backdrop-filter: blur(10px);
 }
 
 .context-menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: 12px;
+  padding: 12px 16px;
   cursor: pointer;
-  color: var(--text-primary-color);
+  color: var(--md-sys-color-on-surface);
   transition: background-color 0.2s ease;
 }
 
 .context-menu-item:hover {
-  background-color: var(--hover-bg);
+  background-color: var(--md-sys-color-surface-container-high);
 }
 
 .context-menu-item .menu-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  opacity: 0.8;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .context-menu-separator {
   height: 1px;
-  background-color: var(--border-color);
+  background-color: var(--md-sys-color-outline-variant);
   margin: 4px 8px;
 }
 
-/* PDF 夜间模式样式 */
-.pdf-dark-mode {
+.pdf-dark-mode :deep(.pdf-page canvas) {
   filter: invert(1) hue-rotate(180deg);
 }
 
-/* 检测并保持图片在夜间模式下相对正常 */
 .pdf-dark-mode :deep(.pdf-page .pdf-image) {
   filter: invert(1) hue-rotate(180deg);
-}
-
-/* 响应式设计 */
-@media (max-width: 900px) {
-  .page-navigation .pdf-zoom-control {
-    position: static;
-    margin-top: 8px;
-  }
-  
-  .page-navigation {
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-@media (max-width: 768px) {
-  .page-navigation {
-    padding: 12px;
-  }
-  
-  .page-navigation .nav-controls {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .page-navigation .pdf-zoom-control {
-    width: 100%;
-    min-width: auto;
-  }
-}
-
-@media (max-width: 600px) {
-  .pdf-zoom-control {
-    min-width: 160px;
-  }
-  
-  .zoom-label {
-    min-width: 35px;
-  }
 }
 </style>

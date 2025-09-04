@@ -257,9 +257,9 @@ onUnmounted(() => {
 <style scoped>
 .sidebar {
   position: relative;
-  background-color: var(--surface-color);
-  border-left: 1px solid var(--border-color);
-  transition: width 0.3s ease;
+  background-color: var(--md-sys-color-surface-container);
+  border-left: 1px solid var(--md-sys-color-outline-variant);
+  transition: width 0.3s ease, min-width 0.3s ease;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -268,45 +268,44 @@ onUnmounted(() => {
 .sidebar.collapsed {
   width: 0 !important;
   min-width: 0 !important;
-  overflow: visible; /* 重要：让按钮在收起状态下仍然可见 */
+  overflow: visible;
   border-left: none;
 }
 
 .sidebar-toggle {
   position: absolute;
   top: 50%;
-  left: -25px;
+  left: -16px;
   transform: translateY(-50%);
-  width: 24px;
+  width: 32px;
   height: 60px;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-right: none;
-  border-radius: 8px 0 0 8px;
+  border-radius: 16px 0 0 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   transition: all 0.3s ease;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .sidebar-toggle.collapsed {
-  left: -24px; /* 调整位置确保在收起状态下可见 */
-  border-left: none;
-  border-right: 1px solid var(--border-color);
-  border-radius: 0 8px 8px 0;
-  transform: translateY(-50%);
+  left: -32px;
+  border-left: 1px solid var(--md-sys-color-outline-variant);
+  border-right: none;
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .sidebar-toggle:hover {
-  background: var(--hover-bg);
+  background-color: var(--md-sys-color-surface-container-high);
 }
 
 .sidebar-toggle svg {
-  width: 16px;
-  height: 16px;
-  color: var(--text-primary-color);
+  width: 24px;
+  height: 24px;
   transition: transform 0.3s ease;
 }
 
@@ -319,14 +318,15 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 5px;
   cursor: ew-resize;
   background: transparent;
   z-index: 5;
+  transition: background-color 0.2s;
 }
 
 .sidebar-resizer:hover {
-  background: var(--primary-color);
+  background-color: var(--md-sys-color-primary);
 }
 
 .sidebar-content {
@@ -334,44 +334,51 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar-tabs {
   display: flex;
-  background: var(--surface-color);
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--md-sys-color-surface-container);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
 .tab-button {
   flex: 1;
-  padding: 12px 16px;
+  padding: 6px 16px;
   background: transparent;
   border: none;
-  color: var(--text-secondary-color);
+  color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  border-radius: 20px;
   border-bottom: 2px solid transparent;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .tab-button:hover {
-  background: var(--hover-bg);
-  color: var(--text-primary-color);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
 
 .tab-button.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
+  color: var(--md-sys-color-primary);
+  border-bottom-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-surface-container-highest);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .tab-button svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .tab-panels {

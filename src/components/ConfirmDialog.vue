@@ -68,7 +68,7 @@ const handleOverlayClick = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,46 +77,50 @@ const handleOverlayClick = () => {
 }
 
 .confirm-dialog {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  border-radius: 28px;
   padding: 24px;
-  min-width: 320px;
-  max-width: 480px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  min-width: 280px;
+  max-width: 560px;
+  box-shadow: var(--md-sys-elevation-level3);
   animation: dialogAppear 0.2s ease-out;
 }
 
 @keyframes dialogAppear {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-10px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
 }
 
 .dialog-header {
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--md-sys-color-on-surface);
 }
 
 .dialog-header h4 {
   margin: 0;
-  color: var(--text-primary-color);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
 }
 
 .dialog-content {
   margin-bottom: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .dialog-content p {
   margin: 0 0 12px 0;
-  color: var(--text-primary-color);
-  line-height: 1.5;
 }
 
 .dialog-content p:last-child {
@@ -124,66 +128,51 @@ const handleOverlayClick = () => {
 }
 
 .warning {
-  color: #f39c12 !important;
+  color: var(--md-sys-color-error);
   font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.warning::before {
-  content: '⚠️';
-  font-size: 16px;
 }
 
 .dialog-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .cancel-btn, .confirm-btn {
-  padding: 10px 20px;
+  padding: 10px 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
-  min-width: 80px;
 }
 
 .cancel-btn {
-  background: var(--border-color);
-  color: var(--text-primary-color);
-  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
 }
 
 .cancel-btn:hover {
-  background: var(--text-secondary-color);
-  color: var(--background-color);
+  background-color: var(--md-sys-color-surface-container-highest);
 }
 
 .confirm-btn {
-  background: var(--primary-color);
-  color: white;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
 }
 
 .confirm-btn:hover {
-  background: var(--primary-hover-color);
+  box-shadow: var(--md-sys-elevation-level1);
 }
 
 .confirm-btn.danger {
-  background: #e74c3c;
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
 }
 
 .confirm-btn.danger:hover {
-  background: #c0392b;
-}
-
-/* 暗色主题适配 */
-:root.dark .confirm-dialog {
-  background: var(--surface-color);
-  border-color: var(--border-color);
+  background-color: color-mix(in srgb, var(--md-sys-color-error), #fff 10%);
 }
 </style>

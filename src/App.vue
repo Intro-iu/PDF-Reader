@@ -229,28 +229,60 @@ const handleTextSelected = (text: string) => {
 };
 
 const handleTranslate = async (text: string) => {
-  const model = configManager.getActiveModel('translate')
-  if (!model) {
-    setError('请先在设置中配置翻译模型')
+  // 如果正在翻译相同的文本，则不重复翻译
+  if (translationState.isTranslating && translationState.selectedText === text) {
+    console.log('Already translating this text, skipping...')
     return
   }
 
   translationState.isTranslating = true
   translationState.error = null
+  console.log('Starting translation, current state:', {
+    isTranslating: translationState.isTranslating,
+    currentText: translationState.translatedText
+  })
 
   try {
-    const result = await aiService.translateText(
+    // 强制重新加载配置以确保使用最新设置
+    await configManager.reloadConfig()
+    
+    // 重新加载配置后再获取翻译模型
+    const model = configManager.getActiveModel('translate')
+    if (!model) {
+      setError('请先在设置中配置翻译模型')
+      translationState.isTranslating = false
+      return
+    }
+
+    translationState.translatedText = '' // 清空之前的翻译结果
+    console.log('Starting translation for text:', text)
+    
+    const config = configManager.getConfig()
+    console.log('Translation config:', {
+      translateTargetLang: config.translateTargetLang,
+      translationPrompt: config.translationPrompt
+    })
+    
+    const result = await aiService.translateTextStream(
       model, 
       text, 
-      configManager.getConfig().translateTargetLang,
-      configManager.getConfig().translationPrompt
+      config.translateTargetLang,
+      config.translationPrompt,
+      (chunk: string) => {
+        // 流式更新翻译结果
+        console.log('Received chunk:', chunk)
+        translationState.translatedText += chunk
+      }
     )
 
     if (result.error) {
       translationState.error = result.error
       setError(result.error)
     } else {
-      translationState.translatedText = result.translatedText
+      // 如果没有通过流式更新，使用最终结果
+      if (!translationState.translatedText) {
+        translationState.translatedText = result.translatedText
+      }
     }
   } catch (err: any) {
     translationState.error = err.message
@@ -401,7 +433,7 @@ const handleSendMessage = async (message: string) => {
       const aiMessage: ChatMessage = {
         id: `ai_${Date.now()}`,
         role: 'assistant',
-        content: result.content,
+        content: result.message,
         timestamp: Date.now()
       }
       chatMessages.value.push(aiMessage)

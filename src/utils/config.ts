@@ -68,6 +68,11 @@ class ConfigManager {
     return { ...this.config };
   }
 
+  public async reloadConfig(): Promise<void> {
+    this.isInitialized = false;
+    await this.initialize();
+  }
+
   public async updateConfig(updates: Partial<AppConfig>): Promise<void> {
     if (!this.isInitialized) return;
     this.config = { ...this.config, ...updates };
@@ -100,12 +105,24 @@ class ConfigManager {
   }
 
   public getActiveModel(type: 'chat' | 'translate'): AIModel | null {
-    if (!this.isInitialized) return null;
+    if (!this.isInitialized) {
+      console.log('Config not initialized when getting active model');
+      return null;
+    }
+    
     const modelId = type === 'chat' 
       ? this.config.activeChatModel 
       : this.config.activeTranslateModel;
     
-    return this.config.aiModels.find((m: AIModel) => m.id === modelId) || null;
+    console.log(`Getting active ${type} model:`, {
+      modelId,
+      availableModels: this.config.aiModels.map(m => ({ id: m.id, name: m.name }))
+    });
+    
+    const model = this.config.aiModels.find((m: AIModel) => m.id === modelId) || null;
+    console.log(`Found ${type} model:`, model ? { id: model.id, name: model.name } : null);
+    
+    return model;
   }
 }
 

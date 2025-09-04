@@ -4,6 +4,7 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { reactive, onMounted, watch, ref } from 'vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import { checkForUpdates } from '../utils/updateChecker';
+import axios from 'axios';
 
 // --- 类型定义 ---
 interface Props {
@@ -60,8 +61,14 @@ const editingModel = reactive<Omit<AiModel, 'id'>>({
 // 重置确认对话框状态
 const showResetConfirmDialog = ref(false);
 const showImportConfirmDialog = ref(false);
+const showDeleteModelConfirmDialog = ref(false);
+const modelToDelete = ref<string | null>(null);
 const checkingUpdate = ref(false);
 const currentVersion = ref('1.0.1');
+
+// 模型测试相关状态
+const testingModels = ref<Set<string>>(new Set());
+const testingNewModel = ref(false);
 
 const emit = defineEmits(['close', 'toggle-theme']);
 
@@ -169,6 +176,7 @@ function openAddModelModal() {
         name: '', modelId: '', apiEndpoint: '', apiKey: '',
         supportsChat: true, supportsTranslation: true
     });
+    testingNewModel.value = false;
     isModalOpen.value = true;
 }
 
@@ -176,16 +184,53 @@ function handleFormSubmit() {
     if (editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey) {
         const newModel: AiModel = { ...editingModel, id: generateModelId() };
         settings.aiModels.push(newModel);
+        testingNewModel.value = false;
         isModalOpen.value = false;
     }
 }
 
 function deleteAiModel(modelId: string) {
-    if (confirm('确定要删除这个模型配置吗？')) {
-        settings.aiModels = settings.aiModels.filter(model => model.id !== modelId);
-        if (settings.activeChatModel === modelId) settings.activeChatModel = '';
-        if (settings.activeTranslateModel === modelId) settings.activeTranslateModel = '';
+    // 设置要删除的模型ID并显示确认对话框
+    modelToDelete.value = modelId;
+    showDeleteModelConfirmDialog.value = true;
+}
+
+function confirmDeleteModel() {
+    if (!modelToDelete.value) return;
+    
+    const modelId = modelToDelete.value;
+    
+    // 找到要删除的模型
+    const model = settings.aiModels.find(m => m.id === modelId);
+    if (!model) {
+        console.warn('模型不存在:', modelId);
+        showDeleteModelConfirmDialog.value = false;
+        modelToDelete.value = null;
+        return;
     }
+
+    console.log('删除模型:', model.name, modelId);
+    
+    // 从数组中移除模型
+    settings.aiModels = settings.aiModels.filter(m => m.id !== modelId);
+    
+    // 如果删除的是当前选中的模型，需要清空相关设置
+    if (settings.activeChatModel === modelId) {
+        settings.activeChatModel = '';
+    }
+    if (settings.activeTranslateModel === modelId) {
+        settings.activeTranslateModel = '';
+    }
+    
+    showNotification(`模型 "${model.name || '未命名模型'}" 已删除`, 'success');
+    showDeleteModelConfirmDialog.value = false;
+    modelToDelete.value = null;
+}
+
+function cancelDeleteModel() {
+    console.log('用户取消删除模型');
+    showDeleteModelConfirmDialog.value = false;
+    modelToDelete.value = null;
 }
 
 function updateAiModelField(modelId: string, field: keyof AiModel, value: any) {
@@ -194,6 +239,105 @@ function updateAiModelField(modelId: string, field: keyof AiModel, value: any) {
         (model as any)[field] = value;
     }
 }
+
+// 测试AI模型连接
+async function testAiModel(modelId?: string) {
+    let modelConfig;
+    let testKey;
+    
+    if (modelId) {
+        // 测试现有模型
+        modelConfig = settings.aiModels.find(m => m.id === modelId);
+        if (!modelConfig) {
+            showNotification('模型不存在', 'error');
+            return;
+        }
+        testKey = modelId;
+        testingModels.value.add(modelId);
+    } else {
+        // 测试新模型（添加时）
+        modelConfig = editingModel;
+        testKey = 'new';
+        testingNewModel.value = true;
+    }
+    
+    // 检查必要字段
+    if (!modelConfig.apiEndpoint || !modelConfig.apiKey || !modelConfig.modelId) {
+        const message = '请填写完整的API配置信息';
+        showNotification(message, 'error');
+        if (modelId) {
+            testingModels.value.delete(modelId);
+        } else {
+            testingNewModel.value = false;
+        }
+        return;
+    }
+    
+    try {
+        // 构建测试请求
+        const requestData = {
+            model: modelConfig.modelId,
+            messages: [
+                { role: 'user', content: '测试连接，请回复"连接成功"' }
+            ],
+            max_tokens: 10,
+            temperature: 0.1
+        };
+        
+        console.log('Testing AI model:', modelConfig.name, requestData);
+        
+        const response = await axios.post(modelConfig.apiEndpoint, requestData, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${modelConfig.apiKey}`
+            },
+            timeout: 60000
+        });
+        
+        if (response.status === 200 && response.data.choices && response.data.choices.length > 0) {
+            console.log('Test response:', response.data);
+            const message = `${modelConfig.name || '模型'} 连接测试成功`;
+            showNotification(message, 'success');
+        } else {
+            console.error('Test failed: Response format error');
+            const message = `${modelConfig.name || '模型'} 响应格式异常`;
+            showNotification(message, 'error');
+        }
+    } catch (error) {
+        console.error('Test error:', error);
+        
+        // 更详细的错误信息
+        let errorMessage = `${modelConfig.name || '模型'} 测试失败: `;
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+            errorMessage += '请求超时（60秒），请检查网络连接或API服务状态';
+        } else if (error.response) {
+            // API返回了错误状态码
+            if (error.response.status === 401) {
+                errorMessage += 'API密钥无效';
+            } else if (error.response.status === 429) {
+                errorMessage += 'API调用次数超限';
+            } else if (error.response.status >= 500) {
+                errorMessage += 'API服务器错误';
+            } else {
+                errorMessage += `API错误 (${error.response.status})`;
+            }
+        } else if (error.request) {
+            errorMessage += '网络连接失败，请检查网络设置';
+        } else {
+            errorMessage += error.message || '未知错误';
+        }
+        
+        showNotification(errorMessage, 'error');
+    } finally {
+        if (modelId) {
+            testingModels.value.delete(modelId);
+        } else {
+            testingNewModel.value = false;
+        }
+    }
+}
+
+// 获取测试结果状态
 
 // --- 主题切换 ---
 const themeIconLight = ref<HTMLElement | null>(null);
@@ -359,9 +503,26 @@ function handleCheckUpdate() {
                                 <div v-else v-for="model in settings.aiModels" :key="model.id" class="ai-model-item" :data-model-id="model.id">
                                     <div class="ai-model-header">
                                         <span class="ai-model-name">{{ model.name || '未命名模型' }}</span>
-                                        <button type="button" class="ai-model-delete" @click="deleteAiModel(model.id)">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                                        </button>
+                                        <div class="ai-model-actions">
+                                            <button type="button" class="btn-test-header" @click="testAiModel(model.id)" 
+                                                    :disabled="!(model.modelId && model.apiEndpoint && model.apiKey) || testingModels.has(model.id)"
+                                                    :title="testingModels.has(model.id) ? '测试中...' : '测试连接'">
+                                                <span v-if="testingModels.has(model.id)">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+                                                        <path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/>
+                                                        <path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/>
+                                                    </svg>
+                                                </span>
+                                                <span v-else>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                                    </svg>
+                                                </span>
+                                            </button>
+                                            <button type="button" class="ai-model-delete" @click="deleteAiModel(model.id)">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="ai-model-fields">
                                         <div class="ai-model-field"><label>模型名称</label><input type="text" :value="model.name" @change="updateAiModelField(model.id, 'name', ($event.target as HTMLInputElement)?.value || '')"></div>
@@ -525,7 +686,29 @@ function handleCheckUpdate() {
                             <label><input type="checkbox" v-model="editingModel.supportsChat"> 支持对话</label>
                             <label><input type="checkbox" v-model="editingModel.supportsTranslation"> 支持翻译</label>
                         </div>
-                        <button type="submit" class="btn-confirm" :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)">确认添加</button>
+                        
+                        <!-- 测试模型连接 -->
+                        <div class="form-group test-section">
+                            <div class="button-group">
+                                <button type="button" class="btn-test" @click="testAiModel()" 
+                                        :disabled="!(editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey) || testingNewModel">
+                                    <span v-if="testingNewModel">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+                                            <path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/>
+                                            <path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/>
+                                        </svg>
+                                        测试中...
+                                    </span>
+                                    <span v-else>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+                                        </svg>
+                                        测试连接
+                                    </span>
+                                </button>
+                                <button type="submit" class="btn-confirm" :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)">确认添加</button>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -557,6 +740,18 @@ function handleCheckUpdate() {
                 :is-danger="true"
                 @confirm="confirmImportConfig"
                 @cancel="cancelImportConfig"
+            />
+
+            <!-- 删除模型确认对话框 -->
+            <ConfirmDialog
+                v-model:show="showDeleteModelConfirmDialog"
+                title="确认删除模型"
+                :message="`确定要删除模型 '${modelToDelete ? settings.aiModels?.find(m => m.id === modelToDelete)?.name || '未命名模型' : ''}' 吗？`"
+                warning="此操作不可撤销！"
+                confirm-text="删除"
+                :is-danger="true"
+                @confirm="confirmDeleteModel"
+                @cancel="cancelDeleteModel"
             />
         </div>
     </div>
@@ -788,6 +983,42 @@ textarea {
 
 .ai-model-name {
     font-weight: 600;
+    flex: 1;
+}
+
+.ai-model-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-test-header {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background-color: var(--surface-secondary-color);
+    color: var(--text-primary-color);
+    border-color: var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.btn-test-header:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.btn-test-header:disabled {
+    background-color: var(--disabled-color);
+    color: var(--text-tertiary-color);
+    cursor: not-allowed;
+    border-color: var(--disabled-color);
 }
 
 .ai-model-delete {
@@ -795,10 +1026,18 @@ textarea {
     border: none;
     color: var(--text-tertiary-color);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    transition: all 0.2s ease;
 }
 .ai-model-delete:hover {
     color: var(--danger-color);
+    background-color: rgba(239, 68, 68, 0.1);
 }
 
 .ai-model-fields {
@@ -1009,12 +1248,127 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .btn-confirm {
     width: 100%;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     background-color: var(--primary-color);
     color: white;
+    border-color: var(--primary-color);
+    transition: background-color 0.2s ease;
 }
+
+.btn-confirm:hover:not(:disabled) {
+    background-color: var(--primary-color-hover);
+    border-color: var(--primary-color-hover);
+}
+
 .btn-confirm:disabled {
     background-color: var(--disabled-color);
+    color: var(--text-tertiary-color);
     cursor: not-allowed;
+    border-color: var(--disabled-color);
+}
+
+/* --- Test Buttons and Results --- */
+.btn-test {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--surface-secondary-color);
+    color: var(--text-primary-color);
+    border-color: var(--border-color);
+    margin-bottom: 0;
+    transition: background-color 0.2s ease;
+}
+
+.btn-test:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.btn-test:disabled {
+    background-color: var(--disabled-color);
+    color: var(--text-tertiary-color);
+    cursor: not-allowed;
+    border-color: var(--disabled-color);
+}
+
+.btn-test-small {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--surface-secondary-color);
+    color: var(--text-primary-color);
+    border-color: var(--border-color);
+    transition: background-color 0.2s ease;
+}
+
+.btn-test-small:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.btn-test-small:disabled {
+    background-color: var(--disabled-color);
+    color: var(--text-tertiary-color);
+    cursor: not-allowed;
+    border-color: var(--disabled-color);
+}
+
+.test-section {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+.button-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.button-group .btn-test {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 120px;
+}
+
+.button-group .btn-confirm {
+    flex: 1;
+    min-width: 120px;
+}
+
+.ai-model-test {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+/* 旋转动画 */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* --- Notification --- */

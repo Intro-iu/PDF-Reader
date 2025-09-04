@@ -1,0 +1,22 @@
+{
+  "aiModels": [
+    {
+      "id": "model_1756882466982_bsficz259",
+      "name": "deepseek大人",
+      "modelId": "deepseek-chat",
+      "apiEndpoint": "https://api.deepseek.com/chat/completions",
+      "apiKey": "",
+      "supportsChat": true,
+      "supportsTranslation": true
+    }
+  ],
+  "activeChatModel": "model_1756882466982_bsficz259",
+  "activeTranslateModel": "model_1756882466982_bsficz259",
+  "translateTargetLang": "中文",
+  "autoSaveSettings": true,
+  "enableSelectionTranslation": true,
+  "textSelectionColor": "#007bff",
+  "selectionOpacity": 30,
+  "chatPrompt": "你是高贵的deepseek大人。",
+  "translationPrompt": "你是专业的翻译专家。请将以下文本准确、自然地翻译成[TARGET_LANG]。\n\n要求：\n1. 保持原文的意思和语气\n2. 使用自然流畅的表达\n3. 只返回翻译结果，不要解释\n\n原文：[SELECTED_TEXT]"
+}

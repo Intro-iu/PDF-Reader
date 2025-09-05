@@ -927,4 +927,23 @@ defineExpose({
 :deep(.textLayer .highlight.selected) {
     background-color: rgba(0, 100, 200, 0.8);
 }
+
+.pdf-content::-webkit-scrollbar {
+  width: 12px;
+  height: 8px;
+  background: var(--md-sys-color-inverse-on-surface);
+}
+
+.pdf-content::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-inverse-primary);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s;
+}
+
+.pdf-content::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-inverse-primary);
+}
+
 </style>

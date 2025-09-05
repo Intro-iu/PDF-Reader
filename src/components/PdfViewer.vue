@@ -879,4 +879,52 @@ defineExpose({
 .pdf-dark-mode :deep(.pdf-page .pdf-image) {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* PDF.js Text Layer for text selection */
+:deep(.textLayer) {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 1; /* Make it visible for debugging, set to 0 for production */
+  line-height: 1.0;
+  user-select: text; /* Ensure text can be selected */
+}
+
+:deep(.textLayer > span) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+:deep(.textLayer > br) {
+	display: none;
+}
+
+:deep(.textLayer .highlight) {
+    margin: -1px;
+    padding: 1px;
+    background-color: rgba(100, 160, 255, 0.8);
+    border-radius: 4px;
+}
+
+:deep(.textLayer .highlight.begin) {
+    border-radius: 4px 0 0 4px;
+}
+
+:deep(.textLayer .highlight.end) {
+    border-radius: 0 4px 4px 0;
+}
+
+:deep(.textLayer .highlight.middle) {
+    border-radius: 0;
+}
+
+:deep(.textLayer .highlight.selected) {
+    background-color: rgba(0, 100, 200, 0.8);
+}
 </style>

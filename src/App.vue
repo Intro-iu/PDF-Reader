@@ -9,6 +9,7 @@
         @file-selected="handleFileSelected"
         @toggle-theme="toggleTheme"
         @open-settings="openSettings"
+        @go-to-page="handleGoToPage"
       />
 
       <!-- 主内容区域 -->

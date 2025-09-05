@@ -57,19 +57,6 @@
         >
           上一页
         </button>
-        
-        <div class="page-input-container">
-          <input 
-            type="number" 
-            :value="currentPage"
-            :min="1"
-            :max="totalPages"
-            @input="handlePageInput"
-            class="page-input"
-          >
-          <span class="page-total">/ {{ totalPages }}</span>
-        </div>
-        
         <button 
           @click="goToPage(currentPage + 1)"
           :disabled="currentPage >= totalPages"
@@ -78,7 +65,6 @@
           下一页
         </button>
       </div>
-      
       <!-- PDF缩放控制器 -->
       <div class="pdf-zoom-control">
         <div class="zoom-control-handle">
@@ -520,12 +506,6 @@ const generateSmartOutlineItems = async (): Promise<OutlineItem[]> => {
   }
 }
 
-const handlePageInput = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const pageNum = parseInt(target.value)
-  goToPage(pageNum)
-}
-
 const togglePdfDarkMode = () => {
   pdfDarkMode.value = !pdfDarkMode.value
   // 保存到本地存储
@@ -752,35 +732,6 @@ defineExpose({
   color: var(--md-sys-color-on-surface-variant);
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.page-input-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-}
-
-.page-input {
-  width: 50px;
-  padding: 6px 8px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--md-sys-color-on-surface);
-  text-align: center;
-  font-size: 14px;
-}
-
-.page-input:focus {
-  outline: none;
-  background-color: var(--md-sys-color-surface-container-highest);
-}
-
-.page-total {
-  color: var(--md-sys-color-on-surface-variant);
-  font-weight: 500;
-  font-size: 14px;
 }
 
 .pdf-zoom-control {

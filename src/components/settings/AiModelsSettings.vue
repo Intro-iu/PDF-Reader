@@ -173,44 +173,40 @@ async function testAiModel(modelId?: string) {
     <div class="settings-section">
         <h3>AI 模型配置</h3>
         <div class="ai-models-container">
-            <div class="ai-models-header">
+            <div class="section-header">
                 <p class="section-description">配置不同的AI模型用于对话和翻译功能</p>
-                <button type="button" id="add-ai-model" class="btn-add" @click="openAddModelModal">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+                <button type="button" class="filled-button" @click="openAddModelModal">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
                     添加模型
                 </button>
             </div>
-            <div id="ai-models-list">
-                <div v-if="!models || models.length === 0" class="empty-models-message">
+            <div class="models-list">
+                <div v-if="!models || models.length === 0" class="empty-list-placeholder">
                     <p>还没有配置任何AI模型</p>
-                    <p>点击"添加模型"按钮开始配置</p>
+                    <small>点击"添加模型"按钮开始配置</small>
                 </div>
-                <div v-else v-for="model in models" :key="model.id" class="ai-model-item" :data-model-id="model.id">
-                    <div class="ai-model-header">
-                        <span class="ai-model-name">{{ model.name || '未命名模型' }}</span>
-                        <div class="ai-model-actions">
-                            <button type="button" class="btn-test-header" @click="testAiModel(model.id)" :disabled="!(model.modelId && model.apiEndpoint && model.apiKey) || testingModels.has(model.id)" :title="testingModels.has(model.id) ? '测试中...' : '测试连接'">
-                                <span v-if="testingModels.has(model.id)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/></svg>
-                                </span>
-                                <span v-else>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                                </span>
+                <div v-else v-for="model in models" :key="model.id" class="model-item" :data-model-id="model.id">
+                    <div class="model-item-header">
+                        <span class="model-name">{{ model.name || '未命名模型' }}</span>
+                        <div class="model-actions">
+                            <button type="button" class="icon-button" @click="testAiModel(model.id)" :disabled="!(model.modelId && model.apiEndpoint && model.apiKey) || testingModels.has(model.id)" :title="testingModels.has(model.id) ? '测试中...' : '测试连接'">
+                                <svg v-if="testingModels.has(model.id)" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="spin"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/></svg>
+                                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
                             </button>
-                            <button type="button" class="ai-model-delete" @click="deleteAiModel(model.id)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <button type="button" class="icon-button" @click="deleteAiModel(model.id)" title="删除模型">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                             </button>
                         </div>
                     </div>
-                    <div class="ai-model-fields">
-                        <div class="ai-model-field"><label>模型名称</label><input type="text" :value="model.name" @change="updateAiModelField(model.id, 'name', ($event.target as HTMLInputElement)?.value || '')"></div>
-                        <div class="ai-model-field"><label>模型标识</label><input type="text" :value="model.modelId" placeholder="如: gpt-3.5-turbo" @change="updateAiModelField(model.id, 'modelId', ($event.target as HTMLInputElement)?.value || '')"></div>
-                        <div class="ai-model-field full-width"><label>API 端点</label><input type="url" :value="model.apiEndpoint" placeholder="https://api.example.com" @change="updateAiModelField(model.id, 'apiEndpoint', ($event.target as HTMLInputElement)?.value || '')"></div>
-                        <div class="ai-model-field full-width"><label>API 密钥</label><input type="password" :value="model.apiKey" placeholder="输入API密钥" @change="updateAiModelField(model.id, 'apiKey', ($event.target as HTMLInputElement)?.value || '')"></div>
+                    <div class="model-fields">
+                        <div class="form-field"><label>模型名称</label><input type="text" :value="model.name" @change="updateAiModelField(model.id, 'name', ($event.target as HTMLInputElement)?.value || '')"></div>
+                        <div class="form-field"><label>模型标识</label><input type="text" :value="model.modelId" placeholder="如: gpt-3.5-turbo" @change="updateAiModelField(model.id, 'modelId', ($event.target as HTMLInputElement)?.value || '')"></div>
+                        <div class="form-field full-width"><label>API 端点</label><input type="url" :value="model.apiEndpoint" placeholder="https://api.example.com" @change="updateAiModelField(model.id, 'apiEndpoint', ($event.target as HTMLInputElement)?.value || '')"></div>
+                        <div class="form-field full-width"><label>API 密钥</label><input type="password" :value="model.apiKey" placeholder="输入API密钥" @change="updateAiModelField(model.id, 'apiKey', ($event.target as HTMLInputElement)?.value || '')"></div>
                     </div>
-                    <div class="ai-model-capabilities">
-                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsChat" @change="updateAiModelField(model.id, 'supportsChat', ($event.target as HTMLInputElement)?.checked || false)"> 支持对话</label>
-                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsTranslation" @change="updateAiModelField(model.id, 'supportsTranslation', ($event.target as HTMLInputElement)?.checked || false)"> 支持翻译</label>
+                    <div class="model-capabilities">
+                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsChat" @change="updateAiModelField(model.id, 'supportsChat', ($event.target as HTMLInputElement)?.checked || false)"> <span class="checkmark"></span> 支持对话</label>
+                        <label class="capability-checkbox"><input type="checkbox" :checked="model.supportsTranslation" @change="updateAiModelField(model.id, 'supportsTranslation', ($event.target as HTMLInputElement)?.checked || false)"> <span class="checkmark"></span> 支持翻译</label>
                     </div>
                 </div>
             </div>
@@ -240,46 +236,40 @@ async function testAiModel(modelId?: string) {
     </div>
 
     <!-- 模型添加/编辑弹窗 -->
-    <div v-if="isModalOpen" id="ai-model-modal" class="modal" @click.self="isModalOpen = false">
-        <div class="modal-content">
-            <span class="close" @click="isModalOpen = false">&times;</span>
-            <h3>添加AI模型</h3>
-            <form @submit.prevent="handleFormSubmit">
-                <div class="form-group">
+    <div v-if="isModalOpen" class="modal-overlay" @click.self="isModalOpen = false">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>添加AI模型</h3>
+                <button class="icon-button" @click="isModalOpen = false" title="关闭">&times;</button>
+            </div>
+            <form @submit.prevent="handleFormSubmit" class="modal-form">
+                <div class="form-field">
                     <label for="modal-model-name">模型名称<span class="required-star">*</span></label>
                     <input type="text" id="modal-model-name" v-model="editingModel.name" required>
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="modal-model-id">模型标识<span class="required-star">*</span></label>
                     <input type="text" id="modal-model-id" v-model="editingModel.modelId" required placeholder="如: gpt-3.5-turbo">
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="modal-api-endpoint">API端点<span class="required-star">*</span></label>
                     <input type="url" id="modal-api-endpoint" v-model="editingModel.apiEndpoint" required placeholder="https://api.example.com">
                 </div>
-                <div class="form-group">
+                <div class="form-field">
                     <label for="modal-api-key">API密钥<span class="required-star">*</span></label>
                     <input type="password" id="modal-api-key" v-model="editingModel.apiKey" required>
                 </div>
-                <div class="form-group">
-                    <label><input type="checkbox" v-model="editingModel.supportsChat"> 支持对话</label>
-                    <label><input type="checkbox" v-model="editingModel.supportsTranslation"> 支持翻译</label>
+                <div class="form-field">
+                    <label class="capability-checkbox"><input type="checkbox" v-model="editingModel.supportsChat"> <span class="checkmark"></span> 支持对话</label>
+                    <label class="capability-checkbox"><input type="checkbox" v-model="editingModel.supportsTranslation"> <span class="checkmark"></span> 支持翻译</label>
                 </div>
                 
-                <div class="form-group test-section">
-                    <div class="button-group">
-                        <button type="button" class="btn-test" @click="testAiModel()" :disabled="!(editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey) || testingNewModel">
-                            <span v-if="testingNewModel">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/></svg>
-                                测试中...
-                            </span>
-                            <span v-else>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
-                                测试连接
-                            </span>
-                        </button>
-                        <button type="submit" class="btn-confirm" :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)">确认添加</button>
-                    </div>
+                <div class="modal-actions">
+                    <button type="button" class="outlined-button" @click="testAiModel()" :disabled="!(editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey) || testingNewModel">
+                        <svg v-if="testingNewModel" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="spin"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"/></svg>
+                        <span v-else>测试连接</span>
+                    </button>
+                    <button type="submit" class="filled-button" :disabled="!(editingModel.name && editingModel.modelId && editingModel.apiEndpoint && editingModel.apiKey)">确认添加</button>
                 </div>
             </form>
         </div>
@@ -299,197 +289,57 @@ async function testAiModel(modelId?: string) {
 </template>
 
 <style scoped>
-/* Styles are copied from SettingsModal.vue, only including relevant parts */
-.settings-section {
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 24px;
-}
-.settings-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary-color);
-}
-.section-description {
-    font-size: 0.9rem;
-    color: var(--text-secondary-color);
-    margin-bottom: 16px;
-}
-.settings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-}
-.setting-group {
-    display: flex;
-    flex-direction: column;
-}
-.setting-group label, .ai-model-field label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: var(--text-secondary-color);
-}
-.setting-group small {
-    font-size: 0.8rem;
-    color: var(--text-tertiary-color);
-    margin-top: 8px;
-    line-height: 1.4;
-}
-input[type="text"], input[type="url"], input[type="password"], select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--input-border);
-    background-color: var(--input-background);
-    color: var(--text-primary-color);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-}
-.ai-models-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-.btn-add {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-.empty-models-message {
-    text-align: center;
-    padding: 32px;
-    background-color: var(--surface-secondary-color);
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
-}
-.ai-model-item {
-    background-color: var(--surface-secondary-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    padding: 16px;
-}
-.ai-model-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-.ai-model-name {
-    font-weight: 600;
-    flex: 1;
-}
-.ai-model-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.btn-test-header, .ai-model-delete {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.ai-model-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-.ai-model-field.full-width {
-    grid-column: 1 / -1;
-}
-.ai-model-capabilities {
-    margin-top: 16px;
-    display: flex;
-    gap: 16px;
-}
-.capability-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1100;
-}
-.modal-content {
-    background: var(--surface-color);
-    padding: 24px;
-    border-radius: 8px;
-    width: 90vw;
-    max-width: 450px;
-    position: relative;
-}
-.close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--text-tertiary-color);
-    cursor: pointer;
-}
-.form-group {
-    margin-bottom: 16px;
-}
-.required-star {
-    color: var(--danger-color);
-    margin-left: 4px;
-}
-.button-group {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-.btn-test, .btn-confirm {
-    flex: 1;
-    padding: 10px 20px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.btn-test {
-    background-color: var(--surface-secondary-color);
-    color: var(--text-primary-color);
-    border-color: var(--border-color);
-}
-.btn-confirm {
-    background-color: var(--primary-color);
-    color: white;
-}
+/* Common styles from GeneralAppSettings */
+.settings-section { margin-bottom: 24px; }
+h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary); padding-bottom: 8px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.section-description { font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 16px; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.setting-group { display: flex; flex-direction: column; }
+.setting-group label, .form-field label { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface-variant); }
+.setting-group small { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 8px; line-height: 1.4; opacity: 0.8; }
+input[type="text"], input[type="url"], input[type="password"], select { width: 100%; padding: 12px 16px; border: 1px solid var(--md-sys-color-outline); background-color: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: all 0.2s ease; }
+input:focus, select:focus { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); outline: none; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+
+/* Component-specific styles */
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.models-list { display: flex; flex-direction: column; gap: 16px; }
+.empty-list-placeholder { text-align: center; padding: 32px; background-color: var(--md-sys-color-surface-container); border-radius: 12px; border: 1px dashed var(--md-sys-color-outline-variant); }
+.empty-list-placeholder p { margin: 0 0 8px; color: var(--md-sys-color-on-surface); }
+.empty-list-placeholder small { color: var(--md-sys-color-on-surface-variant); }
+.model-item { background-color: var(--md-sys-color-surface-container-high); border: 1px solid var(--md-sys-color-outline-variant); border-radius: 12px; padding: 16px; }
+.model-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.model-name { font-weight: 500; color: var(--md-sys-color-on-surface); }
+.model-actions { display: flex; align-items: center; gap: 4px; }
+.model-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-field.full-width { grid-column: 1 / -1; }
+.model-capabilities { margin-top: 16px; display: flex; gap: 24px; }
+.capability-checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; color: var(--md-sys-color-on-surface-variant); }
+.capability-checkbox input[type="checkbox"] { display: none; }
+.checkmark { width: 18px; height: 18px; border: 2px solid var(--md-sys-color-outline); border-radius: 4px; background-color: var(--md-sys-color-surface-container); position: relative; transition: all 0.2s ease; }
+.checkmark::after { content: ""; position: absolute; display: none; left: 5px; top: 1px; width: 5px; height: 10px; border: solid var(--md-sys-color-on-primary); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.capability-checkbox input:checked ~ .checkmark { background-color: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+.capability-checkbox input:checked ~ .checkmark::after { display: block; }
+
+/* Modal styles */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1100; backdrop-filter: blur(2px); }
+.modal-dialog { background: var(--md-sys-color-surface-container-high); padding: 24px; border-radius: 28px; width: 90vw; max-width: 500px; position: relative; box-shadow: var(--md-sys-elevation-level3); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; font-size: 22px; font-weight: 400; }
+.modal-form { display: flex; flex-direction: column; gap: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+.required-star { color: var(--md-sys-color-error); margin-left: 4px; }
+
+/* Button Styles */
+.filled-button, .outlined-button, .icon-button { padding: 10px; border-radius: 20px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; }
+.filled-button { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); padding: 0 24px; }
+.filled-button:hover { box-shadow: var(--md-sys-elevation-level1); }
+.filled-button:disabled { background-color: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface-variant); cursor: not-allowed; }
+.outlined-button { background-color: transparent; color: var(--md-sys-color-primary); border: 1px solid var(--md-sys-color-outline); padding: 0 24px; }
+.outlined-button:hover { background-color: var(--md-sys-color-surface-container-highest); }
+.icon-button { background: transparent; color: var(--md-sys-color-on-surface-variant); width: 40px; padding: 0; border-radius: 50%; }
+.icon-button:hover { background-color: var(--md-sys-color-surface-container-highest); }
+.icon-button svg { width: 20px; height: 20px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

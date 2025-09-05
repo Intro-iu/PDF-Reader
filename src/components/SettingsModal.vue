@@ -16,18 +16,20 @@ interface AppConfig {
     aiModels: AiModel[]; activeChatModel: string; activeTranslateModel: string; translateTargetLang: string; autoSaveSettings: boolean; enableSelectionTranslation: boolean; textSelectionColor: string; selectionOpacity: number; chatPrompt: string; translationPrompt: string;
 }
 interface Props {
-    theme?: 'light' | 'dark';
+    isDark: boolean;
+    sourceColor: string;
 }
 
 // --- 组件Props和Emits ---
-const props = withDefaults(defineProps<Props>(), { theme: 'dark' });
-const emit = defineEmits(['close', 'toggle-theme']);
+const props = defineProps<Props>();
+const emit = defineEmits(['close', 'update-theme']);
 
 // --- 核心状态 ---
 const settings = reactive<AppConfig>({
     aiModels: [], activeChatModel: '', activeTranslateModel: '', translateTargetLang: 'zh', autoSaveSettings: true, enableSelectionTranslation: true, textSelectionColor: '#007bff', selectionOpacity: 30, chatPrompt: '你是一个专业的学术论文阅读助手。', translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
 });
 const currentVersion = ref('1.0.4');
+const localSourceColor = ref(props.sourceColor);
 
 // --- Composables ---
 const configManager = useConfig(settings);
@@ -42,12 +44,14 @@ const selectedConfigFile = ref<string>('');
 onMounted(async () => {
     await handleLoadSettings();
     applySettingsToDOM();
-    watch(() => props.theme, updateThemeIcons, { immediate: true });
-    watch(settings, () => {
-        if (settings.autoSaveSettings) {
-            configManager.save();
-        }
-    }, { deep: true });
+});
+
+watch(() => props.sourceColor, (newVal) => {
+    localSourceColor.value = newVal;
+});
+
+watch(localSourceColor, (newColor) => {
+    emit('update-theme', newColor, props.isDark);
 });
 
 // --- 方法 (作为Composable的包装器，处理UI反馈) ---
@@ -65,6 +69,7 @@ async function handleSaveSettings() {
     try {
         await configManager.save();
         showNotification('设置已保存到文件', 'success');
+        emit('close');
     } catch (error) {
         console.error('保存配置失败:', error);
         showNotification('保存配置失败', 'error');
@@ -117,85 +122,174 @@ function applySettingsToDOM() {
     document.documentElement.style.setProperty('--text-selection-opacity', (settings.selectionOpacity / 100).toString());
 }
 
-const themeIconLight = ref<HTMLElement | null>(null);
-const themeIconDark = ref<HTMLElement | null>(null);
-
-function updateThemeIcons() {
-    if (themeIconLight.value && themeIconDark.value) {
-        themeIconLight.value.style.display = props.theme === 'light' ? 'block' : 'none';
-        themeIconDark.value.style.display = props.theme === 'dark' ? 'block' : 'none';
-    }
+function toggleTheme() {
+    emit('update-theme', localSourceColor.value, !props.isDark);
 }
 
 </script>
 
 <template>
     <div class="modal-overlay" @click="emit('close')">
-        <div id="app-container" @click.stop>
-            <div id="toolbar">
-                <div class="toolbar-left">
-                    <button class="back-button" title="返回主页" @click="emit('close')">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
-                        返回
-                    </button>
-                </div>
-                <div class="toolbar-center">
-                    <h1 class="page-title">设置</h1>
-                </div>
-                <div class="toolbar-right">
-                    <button title="切换深色/浅色模式" @click="emit('toggle-theme')">
-                        <svg ref="themeIconLight" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM12 3c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1V4c0-.55-.45-1-1-1zm0 16c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1s1-.45 1-1v-1c0-.55-.45-1-1-1zM5.64 5.64c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zm12.72 12.72c-.39-.39-1.02-.39-1.41 0s-.39 1.02 0 1.41l.71.71c.39.39 1.02.39 1.41 0s.39-1.02 0-1.41l-.71-.71zM3 12c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1H4c-.55 0-1 .45-1 1zm16 0c0 .55.45 1 1 1h1c.55 0 1-.45 1-1s-.45-1-1-1h-1c-.55 0-1 .45-1 1zm-9.36 5.36c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39 1.02 0 1.41zm-1.41-12.72c.39.39 1.02.39 1.41 0l.71-.71c.39-.39.39-1.02 0-1.41s-1.02-.39-1.41 0l-.71.71c-.39.39-.39 1.02 0 1.41z" /></svg>
-                        <svg ref="themeIconDark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9.37 5.51C9.19 6.15 9.1 6.82 9.1 7.5c0 4.08 3.32 7.4 7.4 7.4.68 0 1.35-.09 1.99-.27C17.45 17.19 14.93 19 12 19c-3.86 0-7-3.14-7-7 0-2.93 1.81-5.45 4.37-6.49z" /></svg>
-                    </button>
-                </div>
+        <div class="settings-dialog" @click.stop>
+            <div class="dialog-header">
+                <button class="icon-button" title="返回" @click="emit('close')">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+                </button>
+                <h2 class="dialog-title">设置</h2>
+                <button class="icon-button" title="切换主题" @click="toggleTheme">
+                  <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-360q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm0 80q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Zm326-268Z"/></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Zm0-80q88 0 158-48.5T740-375q-20 5-40 8t-40 3q-123 0-209.5-86.5T364-660q0-20 3-40t8-40q-78 32-126.5 102T200-480q0 116 82 198t198 82Zm-10-270Z"/></svg>
+                </button>
             </div>
 
-            <div id="settings-content">
+            <div class="dialog-content">
                 <div class="settings-container">
                     <AiModelsSettings v-model:models="settings.aiModels" v-model:activeChatModel="settings.activeChatModel" v-model:activeTranslateModel="settings.activeTranslateModel" />
                     <PromptSettings v-model:chatPrompt="settings.chatPrompt" v-model:translationPrompt="settings.translationPrompt" />
-                    <GeneralAppSettings v-model:autoSaveSettings="settings.autoSaveSettings" v-model:enableSelectionTranslation="settings.enableSelectionTranslation" v-model:textSelectionColor="settings.textSelectionColor" v-model:selectionOpacity="settings.selectionOpacity" />
+                    <GeneralAppSettings 
+                        v-model:autoSaveSettings="settings.autoSaveSettings" 
+                        v-model:enableSelectionTranslation="settings.enableSelectionTranslation" 
+                        v-model:textSelectionColor="settings.textSelectionColor" 
+                        v-model:selectionOpacity="settings.selectionOpacity"
+                        v-model:sourceColor="localSourceColor"
+                    />
                     <AboutSection :current-version="currentVersion" />
-
-                    <div class="settings-actions">
-                        <button class="btn-secondary" @click="handleResetSettings">重置设置</button>
-                        <button class="btn-secondary" @click="handleImportSettings">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M12,11L16,15L14.6,16.4L13,14.8V20H11V14.8L9.4,16.4L8,15L12,11Z"/></svg>
-                            从文件加载
-                        </button>
-                        <button class="btn-primary" @click="handleSaveSettings">保存配置</button>
-                        <button class="btn-primary" @click="handleExportSettings">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M12,19L8,15L9.4,13.6L11,15.2V10H13V15.2L14.6,13.6L16,15L12,19Z"/></svg>
-                            导出配置到文件
-                        </button>
-                    </div>
+                </div>
+            </div>
+            
+            <div class="dialog-actions">
+                <div class="action-group">
+                    <button class="text-button" @click="handleResetSettings">重置设置</button>
+                    <button class="text-button" @click="handleImportSettings">导入</button>
+                    <button class="text-button" @click="handleExportSettings">导出</button>
+                </div>
+                <div class="action-group">
+                    <button class="outlined-button" @click="emit('close')">取消</button>
+                    <button class="filled-button" @click="handleSaveSettings">保存</button>
                 </div>
             </div>
             
             <ConfirmDialog v-model:show="showResetConfirmDialog" title="确认重置设置" message="确定要重置所有设置吗？此操作将恢复为默认设置并保存。" warning="此操作不可撤销！" confirm-text="重置" :is-danger="true" @confirm="confirmResetSettings" @cancel="showResetConfirmDialog = false" />
-            <ConfirmDialog v-model:show="showImportConfirmDialog" title="确认导入配置" :message="`确定要从以下文件导入配置吗？
-
-${selectedConfigFile}`" warning="当前的设置将被完全替换！" confirm-text="导入" :is-danger="true" @confirm="handleImportSettings" @cancel="showImportConfirmDialog = false" />
+            <ConfirmDialog v-model:show="showImportConfirmDialog" title="确认导入配置" :message="`确定要从以下文件导入配置吗？\n\n${selectedConfigFile}`" warning="当前的设置将被完全替换！" confirm-text="导入" :is-danger="true" @confirm="handleImportSettings" @cancel="showImportConfirmDialog = false" />
         </div>
     </div>
 </template>
 
 <style scoped>
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-#app-container { width: 90vw; max-width: 800px; height: 90vh; background-color: var(--surface-color); color: var(--text-primary-color); border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-#toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; height: 56px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 8px; }
-.toolbar-center { flex-grow: 1; text-align: center; }
-.page-title { font-size: 1.2rem; font-weight: 600; margin: 0; }
-#toolbar button { background: none; border: none; color: var(--text-secondary-color); cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-#toolbar .back-button { font-size: 0.9rem; gap: 6px; padding: 8px 12px; border-radius: 18px; }
-#toolbar button:hover { background-color: var(--hover-color); color: var(--text-primary-color); }
-#toolbar svg { width: 20px; height: 20px; }
-#settings-content { flex-grow: 1; overflow-y: auto; padding: 24px; }
-.settings-container { max-width: 100%; margin: 0 auto; }
-.settings-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 24px 0; flex-wrap: wrap; border-top: 1px solid var(--border-color); margin-top: 24px; }
-.btn-primary, .btn-secondary { padding: 10px 20px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
-.btn-primary { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
-.btn-secondary { background-color: var(--surface-secondary-color); color: var(--text-primary-color); border-color: var(--border-color); }
-.btn-secondary:hover { background-color: var(--hover-color); }
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+.settings-dialog {
+    width: 90vw;
+    max-width: 900px;
+    height: 90vh;
+    max-height: 800px;
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--md-sys-elevation-level3);
+    animation: dialog-appear 0.3s ease-out;
+}
+@keyframes dialog-appear {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.dialog-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 12px 12px 24px;
+    flex-shrink: 0;
+    gap: 16px;
+}
+.dialog-title {
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0;
+    flex: 1;
+}
+.dialog-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0 24px;
+}
+.dialog-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    flex-shrink: 0;
+}
+.action-group {
+    display: flex;
+    gap: 8px;
+}
+
+/* M3 Button Styles */
+.icon-button, .text-button, .filled-button, .outlined-button {
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+}
+.icon-button {
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    width: 40px;
+    padding: 0;
+    border-radius: 50%;
+}
+.icon-button:hover {
+    background-color: var(--md-sys-color-surface-container-highest);
+}
+.icon-button svg {
+    width: 24px;
+    height: 24px;
+}
+.text-button {
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    padding: 0 12px;
+}
+.text-button:hover {
+    background-color: var(--md-sys-color-surface-container-highest);
+}
+.filled-button {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    padding: 0 24px;
+}
+.filled-button:hover {
+    box-shadow: var(--md-sys-elevation-level1);
+}
+.outlined-button {
+    background-color: transparent;
+    color: var(--md-sys-color-primary);
+    border: 1px solid var(--md-sys-color-outline);
+    padding: 0 24px;
+}
+.outlined-button:hover {
+    background-color: var(--md-sys-color-surface-container-highest);
+}
 </style>

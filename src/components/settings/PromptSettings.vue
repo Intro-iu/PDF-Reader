@@ -42,54 +42,14 @@ const emit = defineEmits(['update:chatPrompt', 'update:translationPrompt']);
 </template>
 
 <style scoped>
-/* Styles are copied from SettingsModal.vue */
-.settings-section {
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 24px;
-}
-h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary-color);
-}
-.section-description {
-    font-size: 0.9rem;
-    color: var(--text-secondary-color);
-    margin-bottom: 16px;
-}
-.settings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-}
-.setting-group {
-    display: flex;
-    flex-direction: column;
-}
-.setting-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: var(--text-secondary-color);
-}
-.setting-group small {
-    font-size: 0.8rem;
-    color: var(--text-tertiary-color);
-    margin-top: 8px;
-    line-height: 1.4;
-}
-textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--input-border);
-    background-color: var(--input-background);
-    color: var(--text-primary-color);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    resize: vertical;
-    min-height: 80px;
-}
+.settings-section { margin-bottom: 24px; }
+h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary); padding-bottom: 8px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.section-description { font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 16px; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.setting-group { display: flex; flex-direction: column; }
+.setting-group label { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface-variant); }
+.setting-group small { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 8px; line-height: 1.4; opacity: 0.8; }
+textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--md-sys-color-outline); background-color: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); border-radius: 8px; font-size: 1rem; box-sizing: border-box; resize: vertical; min-height: 100px; transition: all 0.2s ease; }
+textarea:focus { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); outline: none; }
+code { background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
 </style>

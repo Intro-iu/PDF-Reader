@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, onMounted, watch, ref } from 'vue';
 import { useConfig } from '../composables/useConfig';
+import { useNotification } from '../composables/useNotification';
 import ConfirmDialog from './ConfirmDialog.vue';
 import AiModelsSettings from './settings/AiModelsSettings.vue';
 import PromptSettings from './settings/PromptSettings.vue';
@@ -28,19 +29,19 @@ const settings = reactive<AppConfig>({
 });
 const currentVersion = ref('1.0.4');
 
-// --- Composable: 外部逻辑 ---
+// --- Composables ---
 const configManager = useConfig(settings);
+const { showNotification } = useNotification();
 
 // --- UI状态 ---
 const showResetConfirmDialog = ref(false);
 const showImportConfirmDialog = ref(false);
-const selectedConfigFile = ref<string>(''); // 用于显示在确认对话框中
-const notification = ref({ show: false, message: '', type: 'info' });
+const selectedConfigFile = ref<string>('');
 
 // --- 生命周期与监听 ---
 onMounted(async () => {
     await handleLoadSettings();
-    applySettingsToDOM(); // 初始加载时应用一次
+    applySettingsToDOM();
     watch(() => props.theme, updateThemeIcons, { immediate: true });
     watch(settings, () => {
         if (settings.autoSaveSettings) {
@@ -86,7 +87,7 @@ async function handleImportSettings() {
     try {
         const success = await configManager.importFromFile();
         if (success) {
-            await handleLoadSettings(); // 重新加载以更新UI
+            await handleLoadSettings();
             showNotification('配置已从文件加载', 'success');
         }
     } catch (error) {
@@ -111,11 +112,6 @@ function confirmResetSettings() {
 }
 
 // --- UI & 其他方法 ---
-function showNotification(message: string, type = 'info') {
-    notification.value = { show: true, message, type };
-    setTimeout(() => { notification.value.show = false; }, 3000);
-}
-
 function applySettingsToDOM() {
     document.documentElement.style.setProperty('--text-selection-color', settings.textSelectionColor);
     document.documentElement.style.setProperty('--text-selection-opacity', (settings.selectionOpacity / 100).toString());
@@ -156,10 +152,10 @@ function updateThemeIcons() {
 
             <div id="settings-content">
                 <div class="settings-container">
-                    <AiModelsSettings v-model:models="settings.aiModels" v-model:activeChatModel="settings.activeChatModel" v-model:activeTranslateModel="settings.activeTranslateModel" @show-notification="showNotification" />
+                    <AiModelsSettings v-model:models="settings.aiModels" v-model:activeChatModel="settings.activeChatModel" v-model:activeTranslateModel="settings.activeTranslateModel" />
                     <PromptSettings v-model:chatPrompt="settings.chatPrompt" v-model:translationPrompt="settings.translationPrompt" />
                     <GeneralAppSettings v-model:autoSaveSettings="settings.autoSaveSettings" v-model:enableSelectionTranslation="settings.enableSelectionTranslation" v-model:textSelectionColor="settings.textSelectionColor" v-model:selectionOpacity="settings.selectionOpacity" />
-                    <AboutSection :current-version="currentVersion" @show-notification="showNotification" />
+                    <AboutSection :current-version="currentVersion" />
 
                     <div class="settings-actions">
                         <button class="btn-secondary" @click="handleResetSettings">重置设置</button>
@@ -176,8 +172,6 @@ function updateThemeIcons() {
                 </div>
             </div>
             
-            <div v-if="notification.show" :class="`notification notification-${notification.type}`">{{ notification.message }}</div>
-
             <ConfirmDialog v-model:show="showResetConfirmDialog" title="确认重置设置" message="确定要重置所有设置吗？此操作将恢复为默认设置并保存。" warning="此操作不可撤销！" confirm-text="重置" :is-danger="true" @confirm="confirmResetSettings" @cancel="showResetConfirmDialog = false" />
             <ConfirmDialog v-model:show="showImportConfirmDialog" title="确认导入配置" :message="`确定要从以下文件导入配置吗？
 
@@ -204,8 +198,4 @@ ${selectedConfigFile}`" warning="当前的设置将被完全替换！" confirm-t
 .btn-primary { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 .btn-secondary { background-color: var(--surface-secondary-color); color: var(--text-primary-color); border-color: var(--border-color); }
 .btn-secondary:hover { background-color: var(--hover-color); }
-.notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 6px; color: white; z-index: 2000; font-size: 0.9rem; }
-.notification-info { background-color: #007bff; }
-.notification-success { background-color: #28a745; }
-.notification-error { background-color: #dc3545; }
 </style>

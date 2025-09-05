@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { checkForUpdates } from '../../utils/updateChecker';
+import { useNotification } from '../../composables/useNotification';
 
 interface Props {
     currentVersion: string;
 }
 
 defineProps<Props>();
-const emit = defineEmits(['show-notification']);
+const { showNotification } = useNotification();
 
 const checkingUpdate = ref(false);
 
@@ -15,7 +16,7 @@ function handleCheckUpdate() {
     checkingUpdate.value = true;
     checkForUpdates().then(updateInfo => {
         if (updateInfo.hasUpdate) {
-            emit('show-notification', `发现新版本 v${updateInfo.latestVersion}！`, 'success');
+            showNotification(`发现新版本 v${updateInfo.latestVersion}！`, 'success');
             const choice = confirm(
                 `发现新版本 v${updateInfo.latestVersion}！\n\n` +
                 `点击"确定"前往发布页查看详情\n` +
@@ -33,11 +34,11 @@ function handleCheckUpdate() {
                 }
             }
         } else {
-            emit('show-notification', '当前已是最新版本！', 'info');
+            showNotification('当前已是最新版本！', 'info');
         }
     }).catch(error => {
         console.error('检查更新失败:', error);
-        emit('show-notification', '检查更新失败，请稍后重试', 'error');
+        showNotification('检查更新失败，请稍后重试', 'error');
     }).finally(() => {
         setTimeout(() => { checkingUpdate.value = false; }, 1000);
     });

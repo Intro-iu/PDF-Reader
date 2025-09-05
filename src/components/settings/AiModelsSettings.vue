@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import axios from 'axios';
 import ConfirmDialog from '../ConfirmDialog.vue';
+import { useNotification } from '../../composables/useNotification';
 
 // --- 类型定义 ---
 interface AiModel {
@@ -22,7 +22,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(['update:models', 'update:activeChatModel', 'update:activeTranslateModel', 'show-notification']);
+const emit = defineEmits(['update:models', 'update:activeChatModel', 'update:activeTranslateModel']);
+const { showNotification } = useNotification();
 
 // --- 响应式状态 ---
 const isModalOpen = ref(false);
@@ -85,7 +86,7 @@ function confirmDeleteModel() {
         emit('update:activeTranslateModel', '');
     }
 
-    emit('show-notification', `模型 "${model.name || '未命名模型'}" 已删除`, 'success');
+    showNotification(`模型 "${model.name || '未命名模型'}" 已删除`, 'success');
     showDeleteModelConfirmDialog.value = false;
     modelToDelete.value = null;
 }
@@ -110,7 +111,7 @@ async function testAiModel(modelId?: string) {
     if (modelId) {
         modelConfig = props.models.find(m => m.id === modelId);
         if (!modelConfig) {
-            emit('show-notification', '模型不存在', 'error');
+            showNotification('模型不存在', 'error');
             return;
         }
         testingModels.value.add(modelId);
@@ -120,7 +121,7 @@ async function testAiModel(modelId?: string) {
     }
 
     if (!modelConfig.apiEndpoint || !modelConfig.apiKey || !modelConfig.modelId) {
-        emit('show-notification', '请填写完整的API配置信息', 'error');
+        showNotification('请填写完整的API配置信息', 'error');
         if (modelId) testingModels.value.delete(modelId);
         else testingNewModel.value = false;
         return;
@@ -142,9 +143,9 @@ async function testAiModel(modelId?: string) {
         });
 
         if (response.status === 200 && response.data.choices && response.data.choices.length > 0) {
-            emit('show-notification', `${modelConfig.name || '模型'} 连接测试成功`, 'success');
+            showNotification(`${modelConfig.name || '模型'} 连接测试成功`, 'success');
         } else {
-            emit('show-notification', `${modelConfig.name || '模型'} 响应格式异常`, 'error');
+            showNotification(`${modelConfig.name || '模型'} 响应格式异常`, 'error');
         }
     } catch (error: any) {
         let errorMessage = `${modelConfig.name || '模型'} 测试失败: `;
@@ -160,7 +161,7 @@ async function testAiModel(modelId?: string) {
         } else {
             errorMessage += error.message || '未知错误';
         }
-        emit('show-notification', errorMessage, 'error');
+        showNotification(errorMessage, 'error');
     } finally {
         if (modelId) testingModels.value.delete(modelId);
         else testingNewModel.value = false;

@@ -57,19 +57,6 @@
         >
           上一页
         </button>
-        
-        <div class="page-input-container">
-          <input 
-            type="number" 
-            :value="currentPage"
-            :min="1"
-            :max="totalPages"
-            @input="handlePageInput"
-            class="page-input"
-          >
-          <span class="page-total">/ {{ totalPages }}</span>
-        </div>
-        
         <button 
           @click="goToPage(currentPage + 1)"
           :disabled="currentPage >= totalPages"
@@ -78,7 +65,6 @@
           下一页
         </button>
       </div>
-      
       <!-- PDF缩放控制器 -->
       <div class="pdf-zoom-control">
         <div class="zoom-control-handle">
@@ -520,12 +506,6 @@ const generateSmartOutlineItems = async (): Promise<OutlineItem[]> => {
   }
 }
 
-const handlePageInput = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const pageNum = parseInt(target.value)
-  goToPage(pageNum)
-}
-
 const togglePdfDarkMode = () => {
   pdfDarkMode.value = !pdfDarkMode.value
   // 保存到本地存储
@@ -754,35 +734,6 @@ defineExpose({
   cursor: not-allowed;
 }
 
-.page-input-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-}
-
-.page-input {
-  width: 50px;
-  padding: 6px 8px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--md-sys-color-on-surface);
-  text-align: center;
-  font-size: 14px;
-}
-
-.page-input:focus {
-  outline: none;
-  background-color: var(--md-sys-color-surface-container-highest);
-}
-
-.page-total {
-  color: var(--md-sys-color-on-surface-variant);
-  font-weight: 500;
-  font-size: 14px;
-}
-
 .pdf-zoom-control {
   display: flex;
   align-items: center;
@@ -927,5 +878,53 @@ defineExpose({
 
 .pdf-dark-mode :deep(.pdf-page .pdf-image) {
   filter: invert(1) hue-rotate(180deg);
+}
+
+/* PDF.js Text Layer for text selection */
+:deep(.textLayer) {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 1; /* Make it visible for debugging, set to 0 for production */
+  line-height: 1.0;
+  user-select: text; /* Ensure text can be selected */
+}
+
+:deep(.textLayer > span) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+:deep(.textLayer > br) {
+	display: none;
+}
+
+:deep(.textLayer .highlight) {
+    margin: -1px;
+    padding: 1px;
+    background-color: rgba(100, 160, 255, 0.8);
+    border-radius: 4px;
+}
+
+:deep(.textLayer .highlight.begin) {
+    border-radius: 4px 0 0 4px;
+}
+
+:deep(.textLayer .highlight.end) {
+    border-radius: 0 4px 4px 0;
+}
+
+:deep(.textLayer .highlight.middle) {
+    border-radius: 0;
+}
+
+:deep(.textLayer .highlight.selected) {
+    background-color: rgba(0, 100, 200, 0.8);
 }
 </style>

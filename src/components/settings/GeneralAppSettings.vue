@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { watch } from 'vue';
+import { watch, computed } from 'vue';
 
 interface Props {
     autoSaveSettings: boolean;
     enableSelectionTranslation: boolean;
     textSelectionColor: string;
     selectionOpacity: number;
+    sourceColor: string;
 }
 
 const props = defineProps<Props>();
@@ -14,7 +15,8 @@ const emit = defineEmits([
     'update:autoSaveSettings',
     'update:enableSelectionTranslation',
     'update:textSelectionColor',
-    'update:selectionOpacity'
+    'update:selectionOpacity',
+    'update:sourceColor'
 ]);
 
 function updateSelectionColor(color: string) {
@@ -27,6 +29,17 @@ function updateSelectionOpacity(opacity: number) {
 
 watch(() => props.textSelectionColor, (newColor) => updateSelectionColor(newColor));
 watch(() => props.selectionOpacity, (newOpacity) => updateSelectionOpacity(newOpacity));
+
+watch(() => props.sourceColor, (newColor) => {
+    emit('update:textSelectionColor', newColor);
+});
+
+const sliderPercentage = computed(() => {
+  const min = 10;
+  const max = 80;
+  const value = props.selectionOpacity;
+  return ((value - min) / (max - min)) * 100;
+});
 
 </script>
 
@@ -59,60 +72,74 @@ watch(() => props.selectionOpacity, (newOpacity) => updateSelectionOpacity(newOp
                 <small>选中文本时自动显示翻译选项</small>
             </div>
             <div class="setting-group">
-                <label for="text-selection-color">文本选区颜色</label>
-                <div class="color-picker-container">
-                    <input 
-                        type="color" 
-                        id="text-selection-color" 
-                        :value="textSelectionColor" 
-                        @input="emit('update:textSelectionColor', ($event.target as HTMLInputElement).value)" 
-                    />
-                    <div class="color-preview-group">
-                        <div v-for="color in ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14']" :key="color"
-                             class="color-preset" 
-                             :style="{ backgroundColor: color }"
-                             :class="{ active: textSelectionColor === color }"
-                             @click="emit('update:textSelectionColor', color)"></div>
-                    </div>
-                </div>
-                <small>设置PDF文档中文本选择时的高亮颜色</small>
-            </div>
-            <div class="setting-group">
                 <label for="selection-opacity">选区透明度</label>
                 <div class="slider-container">
-                    <input 
-                        type="range" 
-                        id="selection-opacity" 
-                        min="10" 
-                        max="80" 
-                        step="5" 
-                        :value="selectionOpacity" 
-                        @input="emit('update:selectionOpacity', Number(($event.target as HTMLInputElement).value))" 
-                    />
+                    <div class="custom-slider-wrapper">
+                        <div class="slider-track"></div>
+                        <div class="slider-progress" :style="{ width: sliderPercentage + '%' }"></div>
+                        <input 
+                            type="range" 
+                            id="selection-opacity" 
+                            class="slider-input"
+                            min="10" 
+                            max="80" 
+                            step="5" 
+                            :value="selectionOpacity" 
+                            @input="emit('update:selectionOpacity', Number(($event.target as HTMLInputElement).value))" 
+                        />
+                    </div>
                     <span class="slider-value">{{ selectionOpacity }}%</span>
                 </div>
                 <small>调整文本选区的透明度（10% - 80%）</small>
             </div>
         </div>
     </div>
+    <div class="settings-section">
+        <h3>主题定制</h3>
+        <div class="settings-grid">
+            <div class="setting-group">
+                <label for="source-color">Material You 主色调</label>
+                <div class="color-picker-container">
+                    <input 
+                        type="color" 
+                        id="source-color" 
+                        :value="sourceColor" 
+                        @input="emit('update:sourceColor', ($event.target as HTMLInputElement).value)" 
+                    />
+                    <div class="color-preview-group">
+                        <div v-for="color in ['#6750A4', '#0061A4', '#386A20', '#B3261E', '#795548', '#FF9800']" :key="color"
+                             class="color-preset" 
+                             :style="{ backgroundColor: color }"
+                             :class="{ active: sourceColor === color }"
+                             @click="emit('update:sourceColor', color)"></div>
+                    </div>
+                </div>
+                <small>选择一个主色调，应用将根据它生成 Material You (M3) 风格的完整主题。</small>
+            </div>
+        </div>
+    </div>
 </template>
 
 <style scoped>
-/* Styles are copied from SettingsModal.vue */
 .settings-section {
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 24px;
+    margin-bottom: 24px;
+}
+.settings-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary-color);
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--md-sys-color-primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 .settings-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 24px;
 }
 .setting-group {
@@ -120,50 +147,54 @@ h3 {
     flex-direction: column;
 }
 .setting-group label {
-    font-size: 0.9rem;
+    font-size: 14px;
     font-weight: 500;
     margin-bottom: 8px;
-    color: var(--text-secondary-color);
+    color: var(--md-sys-color-on-surface-variant);
 }
 .setting-group small {
-    font-size: 0.8rem;
-    color: var(--text-tertiary-color);
+    font-size: 12px;
+    color: var(--md-sys-color-on-surface-variant);
     margin-top: 8px;
     line-height: 1.4;
+    opacity: 0.8;
 }
 .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
+    gap: 12px;
+    font-size: 1rem;
     cursor: pointer;
+    padding: 8px 0;
+    color: var(--md-sys-color-on-surface);
 }
 .checkbox-label input[type="checkbox"] {
     display: none;
 }
 .checkmark {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--input-border);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--md-sys-color-outline);
     border-radius: 4px;
-    background-color: var(--input-background);
+    background-color: var(--md-sys-color-surface-container);
     position: relative;
+    transition: all 0.2s ease;
 }
 .checkmark::after {
     content: "";
     position: absolute;
     display: none;
-    left: 5px;
-    top: 1px;
+    left: 6px;
+    top: 2px;
     width: 5px;
     height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
+    border: solid var(--md-sys-color-on-primary);
+    border-width: 0 3px 3px 0;
     transform: rotate(45deg);
 }
 .checkbox-label input:checked ~ .checkmark {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+    background-color: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
 }
 .checkbox-label input:checked ~ .checkmark::after {
     display: block;
@@ -172,6 +203,7 @@ h3 {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-top: 4px;
 }
 input[type="color"] {
     -webkit-appearance: none;
@@ -187,7 +219,7 @@ input[type="color"]::-webkit-color-swatch-wrapper {
     padding: 0;
 }
 input[type="color"]::-webkit-color-swatch {
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--md-sys-color-outline);
     border-radius: 50%;
 }
 .color-preview-group {
@@ -195,42 +227,88 @@ input[type="color"]::-webkit-color-swatch {
     gap: 8px;
 }
 .color-preset {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 2px solid var(--md-sys-color-outline-variant);
+    transition: all 0.2s ease;
+}
+.color-preset:hover {
+    transform: scale(1.1);
 }
 .color-preset.active {
-    border-color: var(--text-primary-color);
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 2px var(--md-sys-color-primary);
 }
 .slider-container {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-top: 4px;
 }
-input[type="range"] {
+.custom-slider-wrapper {
+    position: relative;
     flex-grow: 1;
-    -webkit-appearance: none;
-    height: 6px;
-    background: var(--input-background);
-    border-radius: 3px;
-    outline: none;
-    border: 1px solid var(--border-color);
+    height: 20px; /* Clickable area */
+    display: flex;
+    align-items: center;
 }
-input[type="range"]::-webkit-slider-thumb {
+.slider-track, .slider-progress {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    border-radius: 2px;
+    pointer-events: none; /* Allow clicks to go to the input */
+}
+.slider-track {
+    width: 100%;
+    background-color: var(--md-sys-color-surface-container-highest);
+}
+.slider-progress {
+    background-color: var(--md-sys-color-primary);
+    z-index: 1;
+}
+.slider-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
-    background: var(--primary-color);
+    background: transparent;
     cursor: pointer;
+    outline: none;
+}
+.slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--md-sys-color-primary);
     border-radius: 50%;
+    border: none;
+    position: relative; /* Needed for z-index to work */
+    z-index: 2;
+}
+.slider-input::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--md-sys-color-primary);
+    border-radius: 50%;
+    border: none;
+    position: relative;
+    z-index: 2;
 }
 .slider-value {
     font-size: 0.9rem;
     font-weight: 500;
     min-width: 40px;
     text-align: right;
+    color: var(--md-sys-color-on-surface-variant);
 }
 </style>

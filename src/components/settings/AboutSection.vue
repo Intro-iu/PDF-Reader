@@ -18,8 +18,8 @@ function handleCheckUpdate() {
         if (updateInfo.hasUpdate) {
             showNotification(`发现新版本 v${updateInfo.latestVersion}！`, 'success');
             const choice = confirm(
-                `发现新版本 v${updateInfo.latestVersion}！\n\n` +
-                `点击"确定"前往发布页查看详情\n` +
+                `发现新版本 v${updateInfo.latestVersion}！\n\n` + 
+                `点击"确定"前往发布页查看详情\n` + 
                 `点击"取消"直接下载更新包`
             );
             if (choice) {
@@ -53,7 +53,7 @@ function handleCheckUpdate() {
                 <label>应用版本</label>
                 <div class="version-info">
                     <span class="version-text">{{ currentVersion }}</span>
-                    <button type="button" class="btn-check-update" @click="handleCheckUpdate" :disabled="checkingUpdate">
+                    <button type="button" class="outlined-button" @click="handleCheckUpdate" :disabled="checkingUpdate">
                         {{ checkingUpdate ? '检查中...' : '检查更新' }}
                     </button>
                 </div>
@@ -72,80 +72,20 @@ function handleCheckUpdate() {
 </template>
 
 <style scoped>
-/* Styles are copied from SettingsModal.vue */
-.settings-section {
-    margin-bottom: 40px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 24px;
-}
-.settings-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary-color);
-}
-.settings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
-}
-.setting-group {
-    display: flex;
-    flex-direction: column;
-}
-.setting-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: var(--text-secondary-color);
-}
-.setting-group small {
-    font-size: 0.8rem;
-    color: var(--text-tertiary-color);
-    margin-top: 8px;
-    line-height: 1.4;
-}
-.version-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-}
-.version-text {
-    font-family: 'Courier New', monospace;
-    background: var(--input-background);
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary-color);
-    border: 1px solid var(--border-color);
-}
-.btn-check-update {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 6px 16px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    cursor: pointer;
-}
-.app-info {
-    margin-top: 8px;
-    line-height: 1.6;
-}
-.app-info p {
-    margin: 4px 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary-color);
-}
-.app-info a {
-    color: var(--primary-color);
-    text-decoration: none;
-}
+.settings-section { margin-bottom: 24px; }
+h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; color: var(--md-sys-color-primary); padding-bottom: 8px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.setting-group { display: flex; flex-direction: column; }
+.setting-group label { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--md-sys-color-on-surface-variant); }
+.setting-group small { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 8px; line-height: 1.4; opacity: 0.8; }
+.version-info { display: flex; align-items: center; gap: 12px; }
+.version-text { font-family: monospace; background: var(--md-sys-color-surface-container-highest); padding: 8px 12px; border-radius: 8px; font-size: 1rem; font-weight: 500; color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline-variant); }
+.app-info { margin-top: 8px; line-height: 1.6; }
+.app-info p { margin: 4px 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant); }
+.app-info a { color: var(--md-sys-color-primary); text-decoration: none; }
+.app-info a:hover { text-decoration: underline; }
+
+.outlined-button { padding: 10px; border-radius: 20px; border: 1px solid var(--md-sys-color-outline); cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; background-color: transparent; color: var(--md-sys-color-primary); padding: 0 24px; }
+.outlined-button:hover { background-color: var(--md-sys-color-surface-container-highest); }
+.outlined-button:disabled { color: var(--md-sys-color-on-surface-variant); border-color: var(--md-sys-color-outline-variant); cursor: not-allowed; }
 </style>

@@ -356,24 +356,21 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s, color 0.2s;
   border-radius: 20px;
   border-bottom: 2px solid transparent;
   position: relative;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .tab-button:hover {
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
 }
 
 .tab-button.active {
-  color: var(--md-sys-color-primary);
-  border-bottom-color: var(--md-sys-color-primary);
-  background: var(--md-sys-color-surface-container-highest);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  color: var(--md-sys-color-on-primary-container);
+  background-color: var(--md-sys-color-primary-container);
+  border-bottom-color: transparent;
 }
 
 .tab-button svg {

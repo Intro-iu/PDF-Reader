@@ -48,30 +48,6 @@ const sliderPercentage = computed(() => {
         <h3>应用设置</h3>
         <div class="settings-grid">
             <div class="setting-group">
-                <label class="checkbox-label">
-                    <input 
-                        type="checkbox" 
-                        :checked="autoSaveSettings" 
-                        @change="emit('update:autoSaveSettings', ($event.target as HTMLInputElement).checked)" 
-                    />
-                    <span class="checkmark"></span>
-                    自动保存设置
-                </label>
-                <small>自动保存配置更改</small>
-            </div>
-            <div class="setting-group">
-                <label class="checkbox-label">
-                    <input 
-                        type="checkbox" 
-                        :checked="enableSelectionTranslation" 
-                        @change="emit('update:enableSelectionTranslation', ($event.target as HTMLInputElement).checked)" 
-                    />
-                    <span class="checkmark"></span>
-                    启用划选翻译
-                </label>
-                <small>选中文本时自动显示翻译选项</small>
-            </div>
-            <div class="setting-group">
                 <label for="selection-opacity">选区透明度</label>
                 <div class="slider-container">
                     <div class="custom-slider-wrapper">
@@ -115,6 +91,7 @@ const sliderPercentage = computed(() => {
                     </div>
                 </div>
                 <small>选择一个主色调，应用将根据它生成 Material You (M3) 风格的完整主题。</small>
+                <small>此为本地配置，不会写入配置文件</small>
             </div>
         </div>
     </div>
@@ -289,7 +266,7 @@ input[type="color"]::-webkit-color-swatch {
     appearance: none;
     width: 20px;
     height: 20px;
-    background: var(--md-sys-color-primary);
+    background: var(--md-sys-color-surface);
     border-radius: 50%;
     border: none;
     position: relative; /* Needed for z-index to work */
@@ -298,7 +275,7 @@ input[type="color"]::-webkit-color-swatch {
 .slider-input::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    background: var(--md-sys-color-primary);
+    background: var(--md-sys-color-on-surface);
     border-radius: 50%;
     border: none;
     position: relative;
@@ -309,6 +286,6 @@ input[type="color"]::-webkit-color-swatch {
     font-weight: 500;
     min-width: 40px;
     text-align: right;
-    color: var(--md-sys-color-on-surface-variant);
+    color: var(--md-sys-color-on-surface);
 }
 </style>

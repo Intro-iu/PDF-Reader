@@ -97,22 +97,17 @@ html, body {
 }
 
 /* Scrollbar styles */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
 ::-webkit-scrollbar-track {
-    background: var(--background-color);
+    background: var(--surface-color);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: var(--text-secondary-color);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary-color);
+    background: var(--primary-color);
 }
 
 /* Button reset */

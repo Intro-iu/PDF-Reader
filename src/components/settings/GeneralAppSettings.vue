@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, computed } from 'vue';
+import { watch, computed, onMounted } from 'vue';
 
 interface Props {
     autoSaveSettings: boolean;
@@ -28,10 +28,15 @@ function updateSelectionOpacity(opacity: number) {
 }
 
 watch(() => props.textSelectionColor, (newColor) => updateSelectionColor(newColor));
-    watch(() => props.selectionOpacity, (newOpacity) => emit('update:selectionOpacity', newOpacity));
+watch(() => props.selectionOpacity, (newOpacity) => updateSelectionOpacity(newOpacity));
 
 watch(() => props.sourceColor, (newColor) => {
     emit('update:textSelectionColor', newColor);
+});
+
+onMounted(() => {
+    updateSelectionColor(props.textSelectionColor);
+    updateSelectionOpacity(props.selectionOpacity);
 });
 
 const sliderPercentage = computed(() => {
@@ -48,7 +53,7 @@ const sliderPercentage = computed(() => {
         <h3>应用设置</h3>
         <div class="settings-grid">
             <div class="setting-group">
-                <label for="selection-opacity">选区透明度</label>
+                <label for="selection-opacity">选区不透明度</label>
                 <div class="slider-container">
                     <div class="custom-slider-wrapper">
                         <div class="slider-track"></div>
@@ -66,7 +71,7 @@ const sliderPercentage = computed(() => {
                     </div>
                     <span class="slider-value">{{ selectionOpacity }}%</span>
                 </div>
-                <small>调整文本选区的透明度（10% - 80%）</small>
+                <small>调整文本选区的不透明度（10% - 80%）</small>
             </div>
         </div>
     </div>

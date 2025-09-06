@@ -94,10 +94,7 @@
           @click="togglePdfDarkMode"
           :title="pdfDarkMode ? '关闭 PDF 夜间模式' : '开启 PDF 夜间模式'"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-            <path v-if="pdfDarkMode" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
-            <path v-else d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm40-83q119-15 199.5-104.5T800-480q0-123-80.5-212.5T520-797v634Z"/></svg>
         </button>
       </div>
     </div>
@@ -737,12 +734,6 @@ defineExpose({
   padding: 4px 8px;
 }
 
-.zoom-control-handle svg {
-  width: 24px;
-  height: 24px;
-  color: var(--md-sys-color-on-surface-variant);
-}
-
 .fit-page-btn, .pdf-dark-mode-toggle {
   display: flex;
   align-items: center;
@@ -756,11 +747,6 @@ defineExpose({
   transition: all 0.2s ease;
   width: 36px;
   height: 36px;
-}
-
-.fit-page-btn:hover, .pdf-dark-mode-toggle:hover {
-  background-color: var(--md-sys-color-surface-container-highest);
-  color: var(--md-sys-color-on-surface);
 }
 
 .fit-page-btn svg, .pdf-dark-mode-toggle svg {

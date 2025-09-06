@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { reactive } from 'vue';
 
 // 默认配置
 const defaultConfig = {
@@ -8,9 +7,6 @@ const defaultConfig = {
     activeChatModel: '',
     activeTranslateModel: '',
     translateTargetLang: 'zh',
-    autoSaveSettings: true,
-    enableSelectionTranslation: true,
-    textSelectionColor: '#007bff',
     selectionOpacity: 30,
     chatPrompt: '你是一个专业的学术论文阅读助手。',
     translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
@@ -32,9 +28,6 @@ interface AppConfig {
     activeChatModel: string;
     activeTranslateModel: string;
     translateTargetLang: string;
-    autoSaveSettings: boolean;
-    enableSelectionTranslation: boolean;
-    textSelectionColor: string;
     selectionOpacity: number;
     chatPrompt: string;
     translationPrompt: string;

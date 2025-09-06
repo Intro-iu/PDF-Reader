@@ -13,7 +13,7 @@ interface AiModel {
     id: string; name: string; modelId: string; apiEndpoint: string; apiKey: string; supportsChat: boolean; supportsTranslation: boolean;
 }
 interface AppConfig {
-    aiModels: AiModel[]; activeChatModel: string; activeTranslateModel: string; translateTargetLang: string; autoSaveSettings: boolean; enableSelectionTranslation: boolean; textSelectionColor: string; selectionOpacity: number; chatPrompt: string; translationPrompt: string;
+    aiModels: AiModel[]; activeChatModel: string; activeTranslateModel: string; translateTargetLang: string; selectionOpacity: number; chatPrompt: string; translationPrompt: string;
 }
 interface Props {
     isDark: boolean;
@@ -26,7 +26,7 @@ const emit = defineEmits(['close', 'update-theme']);
 
 // --- 核心状态 ---
 const settings = reactive<AppConfig>({
-    aiModels: [], activeChatModel: '', activeTranslateModel: '', translateTargetLang: 'zh', autoSaveSettings: true, enableSelectionTranslation: true, textSelectionColor: '#007bff', selectionOpacity: 30, chatPrompt: '你是一个专业的学术论文阅读助手。', translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
+    aiModels: [], activeChatModel: '', activeTranslateModel: '', translateTargetLang: 'zh', selectionOpacity: 30, chatPrompt: '你是一个专业的学术论文阅读助手。', translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
 });
 const currentVersion = ref('1.0.4');
 const localSourceColor = ref(props.sourceColor);
@@ -147,9 +147,6 @@ function toggleTheme() {
                     <AiModelsSettings v-model:models="settings.aiModels" v-model:activeChatModel="settings.activeChatModel" v-model:activeTranslateModel="settings.activeTranslateModel" />
                     <PromptSettings v-model:chatPrompt="settings.chatPrompt" v-model:translationPrompt="settings.translationPrompt" />
                     <GeneralAppSettings 
-                        v-model:autoSaveSettings="settings.autoSaveSettings" 
-                        v-model:enableSelectionTranslation="settings.enableSelectionTranslation" 
-                        v-model:textSelectionColor="settings.textSelectionColor" 
                         v-model:selectionOpacity="settings.selectionOpacity"
                         v-model:sourceColor="localSourceColor"
                     />
@@ -291,5 +288,24 @@ function toggleTheme() {
 }
 .outlined-button:hover {
     background-color: var(--md-sys-color-surface-container-highest);
+}
+
+
+.dialog-content::-webkit-scrollbar {
+  width: 12px;
+  height: 8px;
+  background: var(--md-sys-color-surface);
+}
+
+.dialog-content::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-on-surface);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s;
+}
+
+.dialog-content::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-on-surface);
 }
 </style>

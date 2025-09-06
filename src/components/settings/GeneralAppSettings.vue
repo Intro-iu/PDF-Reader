@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, computed } from 'vue';
+import { watch, computed, onMounted } from 'vue';
 
 interface Props {
     autoSaveSettings: boolean;
@@ -34,6 +34,11 @@ watch(() => props.sourceColor, (newColor) => {
     emit('update:textSelectionColor', newColor);
 });
 
+onMounted(() => {
+    updateSelectionColor(props.textSelectionColor);
+    updateSelectionOpacity(props.selectionOpacity);
+});
+
 const sliderPercentage = computed(() => {
   const min = 10;
   const max = 80;
@@ -48,7 +53,7 @@ const sliderPercentage = computed(() => {
         <h3>应用设置</h3>
         <div class="settings-grid">
             <div class="setting-group">
-                <label for="selection-opacity">选区透明度</label>
+                <label for="selection-opacity">选区不透明度</label>
                 <div class="slider-container">
                     <div class="custom-slider-wrapper">
                         <div class="slider-track"></div>
@@ -66,7 +71,7 @@ const sliderPercentage = computed(() => {
                     </div>
                     <span class="slider-value">{{ selectionOpacity }}%</span>
                 </div>
-                <small>调整文本选区的透明度（10% - 80%）</small>
+                <small>调整文本选区的不透明度（10% - 80%）</small>
             </div>
         </div>
     </div>
@@ -260,32 +265,16 @@ input[type="color"]::-webkit-color-swatch {
     background: transparent;
     cursor: pointer;
     outline: none;
+    z-index: 3;
 }
 .slider-input::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--md-sys-color-surface);
+    width: 16px;
+    height: 16px;
+    background: var(--md-sys-color-primary);
     border-radius: 50%;
-    border: none;
-    position: relative; /* Needed for z-index to work */
-    z-index: 2;
-}
-.slider-input::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: var(--md-sys-color-on-surface);
-    border-radius: 50%;
-    border: none;
     position: relative;
-    z-index: 2;
-}
-.slider-value {
-    font-size: 0.9rem;
-    font-weight: 500;
-    min-width: 40px;
-    text-align: right;
-    color: var(--md-sys-color-on-surface);
+    z-index: 4;
 }
 </style>

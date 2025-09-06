@@ -260,32 +260,16 @@ input[type="color"]::-webkit-color-swatch {
     background: transparent;
     cursor: pointer;
     outline: none;
+    z-index: 3;
 }
 .slider-input::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--md-sys-color-surface);
+    width: 16px;
+    height: 16px;
+    background: var(--md-sys-color-primary);
     border-radius: 50%;
-    border: none;
-    position: relative; /* Needed for z-index to work */
-    z-index: 2;
-}
-.slider-input::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: var(--md-sys-color-on-surface);
-    border-radius: 50%;
-    border: none;
     position: relative;
-    z-index: 2;
-}
-.slider-value {
-    font-size: 0.9rem;
-    font-weight: 500;
-    min-width: 40px;
-    text-align: right;
-    color: var(--md-sys-color-on-surface);
+    z-index: 4;
 }
 </style>

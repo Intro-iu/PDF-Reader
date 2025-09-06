@@ -319,7 +319,8 @@ watch(() => [props.messages, props.isThinking], () => {
   min-height: 48px;
   max-height: 120px;
   padding: 14px 20px;
-  border: none;
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--border-radius);
   background: transparent;
   color: var(--md-sys-color-on-surface-variant);
   resize: none;
@@ -327,6 +328,11 @@ watch(() => [props.messages, props.isThinking], () => {
   font-size: 16px;
   line-height: 1.5;
   outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input:focus {
+  border-color: var(--input-focus-border);
 }
 
 .chat-input::placeholder {

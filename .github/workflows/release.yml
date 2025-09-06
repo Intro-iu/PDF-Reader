@@ -31,6 +31,8 @@ jobs:
             args: '--target x86_64-pc-windows-msvc'
             target: 'x86_64-pc-windows-msvc'
             arch: 'x64'
+            # 仅正式版打 msi 包，预发布只打 exe
+            include_msi: ${{ !(contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc')) }}
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -125,3 +127,6 @@ jobs:
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
           args: ${{ matrix.args }}
+          # 仅正式版打 msi 包，预发布时通过 TAURI_BUNDLE_TARGETS 控制只打 exe
+        env:
+          TAURI_BUNDLE_TARGETS: ${{ matrix.platform == 'windows-latest' && (contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc')) && 'msi' || '' }}

@@ -1,37 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import type { AppConfig } from '../types';
 
 // 默认配置
-const defaultConfig = {
+const defaultConfig: AppConfig = {
     aiModels: [],
     activeChatModel: '',
     activeTranslateModel: '',
     translateTargetLang: 'zh',
-    selectionOpacity: 30,
     chatPrompt: '你是一个专业的学术论文阅读助手。',
-    translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
+    translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]',
+    autoSaveSettings: true,
+    enableSelectionTranslation: false,
+    textSelectionColor: '#007acc',
+    selectionOpacity: 30,
 };
-
-// 定义配置类型，与 SettingsModal.vue 中保持一致
-interface AiModel {
-    id: string;
-    name: string;
-    modelId: string;
-    apiEndpoint: string;
-    apiKey: string;
-    supportsChat: boolean;
-    supportsTranslation: boolean;
-}
-
-interface AppConfig {
-    aiModels: AiModel[];
-    activeChatModel: string;
-    activeTranslateModel: string;
-    translateTargetLang: string;
-    selectionOpacity: number;
-    chatPrompt: string;
-    translationPrompt: string;
-}
 
 export function useConfig(settings: AppConfig) {
 

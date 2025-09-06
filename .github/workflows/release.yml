@@ -97,6 +97,11 @@ jobs:
             
             一个功能丰富的现代 PDF 阅读器，基于 Vue 3 和 Tauri 构建。
             
+            ### 🚀 新特性
+
+            - 适配Material3 设计风格
+            - 优化了性能和稳定性
+
             ### 📦 下载指南
             
             **选择适合你系统的版本：**
@@ -109,27 +114,6 @@ jobs:
               - Ubuntu/Debian: 下载 `.deb` 文件
               - 其他发行版: 下载 `.AppImage` 文件
             
-            ### 🆕 v1.0.4 相比之前多了...
-
-            - 修复选中文本情况下点击复制翻译会触发重新翻译的问题
-            
-            ### ✨ 主要功能
-            - 📖 **智能 PDF 阅读** - 多格式支持，智能缩放
-            - 📝 **智能目录生成** - AI 驱动的目录识别
-            - 🌙 **夜间模式** - 护眼的深色主题
-            - 📋 **历史记录管理** - 记住阅读进度
-            - 🔍 **AI 翻译** - 多语言智能翻译，支持流式输出
-            - 💬 **PDF 问答** - 基于内容的智能对话
-            - ⚙️ **跨平台兼容** - Windows、macOS、Linux
-            - 🔄 **自动更新** - 内置更新检查功能
-            
-            ### 🔧 技术架构
-            - **前端**: Vue 3 + TypeScript + Vite
-            - **后端**: Tauri 2.x + Rust
-            - **PDF 引擎**: PDF.js
-            - **AI 集成**: 支持多种 AI 模型 (OpenAI, DeepSeek 等)
-            - **HTTP 客户端**: Axios with 60s timeout
-            
             ### 📝 安装说明
             1. 从上方 Assets 中下载适合你系统的安装包
             2. Windows: 运行 `.msi` 文件
@@ -139,5 +123,5 @@ jobs:
             ### 🐛 问题反馈
             如遇到问题，请在 [GitHub Issues](https://github.com/ZeroHzzzz/PDF-Reader/issues) 中反馈。
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
           args: ${{ matrix.args }}

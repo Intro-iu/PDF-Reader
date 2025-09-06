@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import Toolbar from './components/Toolbar.vue'
 import PdfViewer from './components/PdfViewer.vue'
 import Sidebar from './components/Sidebar.vue'
@@ -114,7 +114,7 @@ import NotificationContainer from './components/NotificationContainer.vue'
 import { useNotification } from './composables/useNotification'
 import { aiService } from './utils/ai'
 import { configManager } from './utils/config'
-import { applyMaterialTheme, initializeTheme } from './utils/material-theme'
+import { applyMaterialTheme } from './utils/material-theme'
 import { normalizePath, getPlatformInfo } from './utils/platform'
 import { pdfHistoryManager } from './utils/pdfHistory'
 import type { PdfViewerState, TranslationState, ChatMessage, OutlineItem } from './types'
@@ -145,12 +145,7 @@ const pdfOutline = ref<OutlineItem[]>([])
 const outlineSidebarCollapsed = ref(false)
 const outlineSidebarWidth = ref(250)
 
-interface OutlineItem {
-  id: string
-  title: string
-  page: number
-  level: number
-}
+
 
 const pdfViewerState = reactive<PdfViewerState>({
   currentScale: 1.0,

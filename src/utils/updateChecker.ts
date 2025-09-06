@@ -10,7 +10,7 @@ export interface UpdateInfo {
 }
 
 // 当前版本号（从package.json同步）
-export const CURRENT_VERSION = '1.0.4'
+export const CURRENT_VERSION = '1.0.5-beta'
 
 // GitHub仓库信息
 const GITHUB_OWNER = 'ZeroHzzzz'

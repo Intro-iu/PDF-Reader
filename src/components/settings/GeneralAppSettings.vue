@@ -28,7 +28,7 @@ function updateSelectionOpacity(opacity: number) {
 }
 
 watch(() => props.textSelectionColor, (newColor) => updateSelectionColor(newColor));
-watch(() => props.selectionOpacity, (newOpacity) => updateSelectionOpacity(newOpacity));
+    watch(() => props.selectionOpacity, (newOpacity) => emit('update:selectionOpacity', newOpacity));
 
 watch(() => props.sourceColor, (newColor) => {
     emit('update:textSelectionColor', newColor);

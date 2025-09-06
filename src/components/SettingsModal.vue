@@ -7,14 +7,9 @@ import AiModelsSettings from './settings/AiModelsSettings.vue';
 import PromptSettings from './settings/PromptSettings.vue';
 import GeneralAppSettings from './settings/GeneralAppSettings.vue';
 import AboutSection from './settings/AboutSection.vue';
+import type { AppConfig } from '../types';
 
 // --- 类型定义 ---
-interface AiModel {
-    id: string; name: string; modelId: string; apiEndpoint: string; apiKey: string; supportsChat: boolean; supportsTranslation: boolean;
-}
-interface AppConfig {
-    aiModels: AiModel[]; activeChatModel: string; activeTranslateModel: string; translateTargetLang: string; selectionOpacity: number; chatPrompt: string; translationPrompt: string;
-}
 interface Props {
     isDark: boolean;
     sourceColor: string;
@@ -26,9 +21,18 @@ const emit = defineEmits(['close', 'update-theme']);
 
 // --- 核心状态 ---
 const settings = reactive<AppConfig>({
-    aiModels: [], activeChatModel: '', activeTranslateModel: '', translateTargetLang: 'zh', selectionOpacity: 30, chatPrompt: '你是一个专业的学术论文阅读助手。', translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]'
+    aiModels: [],
+    activeChatModel: '',
+    activeTranslateModel: '',
+    translateTargetLang: 'zh',
+    chatPrompt: '你是一个专业的学术论文阅读助手。',
+    translationPrompt: 'Translate the following text to [TARGET_LANG]: [SELECTED_TEXT]',
+    autoSaveSettings: true,
+    enableSelectionTranslation: false,
+    textSelectionColor: '#007acc',
+    selectionOpacity: 30,
 });
-const currentVersion = ref('1.0.4');
+const currentVersion = ref('1.0.5-beta');
 const localSourceColor = ref(props.sourceColor);
 
 // --- Composables ---
@@ -147,6 +151,9 @@ function toggleTheme() {
                     <AiModelsSettings v-model:models="settings.aiModels" v-model:activeChatModel="settings.activeChatModel" v-model:activeTranslateModel="settings.activeTranslateModel" />
                     <PromptSettings v-model:chatPrompt="settings.chatPrompt" v-model:translationPrompt="settings.translationPrompt" />
                     <GeneralAppSettings 
+                        v-model:autoSaveSettings="settings.autoSaveSettings"
+                        v-model:enableSelectionTranslation="settings.enableSelectionTranslation"
+                        v-model:textSelectionColor="settings.textSelectionColor"
                         v-model:selectionOpacity="settings.selectionOpacity"
                         v-model:sourceColor="localSourceColor"
                     />
@@ -171,6 +178,7 @@ function toggleTheme() {
         </div>
     </div>
 </template>
+
 
 <style scoped>
 .modal-overlay {

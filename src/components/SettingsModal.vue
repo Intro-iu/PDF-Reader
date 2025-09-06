@@ -32,7 +32,7 @@ const settings = reactive<AppConfig>({
     textSelectionColor: '#007acc',
     selectionOpacity: 30,
 });
-const currentVersion = ref('v1.0.6-beta');
+const currentVersion = ref('1.0.6-beta');
 const localSourceColor = ref(props.sourceColor);
 
 // --- Composables ---

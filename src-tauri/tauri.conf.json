@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "pdf-reader",
-  "version": "v1.0.6-beta",
+  "version": "1.0.6-beta",
   "identifier": "com.zerohzzzz.pdfreader",
   "build": {
     "frontendDist": "../dist",
